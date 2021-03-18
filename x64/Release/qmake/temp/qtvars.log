@@ -1,1 +1,6 @@
-Info: creating stash file D:\coding_projects\test_task\test_task\x64\Release\qmake\temp\.qmake.stash
+
+Error: Invalid license key ()!
+Error: Licensee info missing!
+License schema not known ()!
+Error: Licensed product not known ()!
+Project ERROR: License check failed! Giving up ...

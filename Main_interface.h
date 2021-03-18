@@ -13,6 +13,8 @@
 #include <thread>
 #include <mutex>
 #include <random>
+
+#include "encryptor.h"
 #define FIRST_FILE 1
 #define SECOND_FILE 2
 class Main_interface : public QWidget 
@@ -29,8 +31,10 @@ public:
 	const std::filesystem::path& get_first_file_path() const { return first_choosen_file; }
 	const std::filesystem::path& get_second_file_path() const { return second_choosen_file; }
 
+	void bring_files_to_encryptor(const std::filesystem::path& _first, const std::filesystem::path& _second);
+
 public slots:
-	void menu();
+	void menu() noexcept;
 	void start_program();
 	void search_for_files();
 	void show_list_of_files();
@@ -59,12 +63,13 @@ private:
 	std::filesystem::path first_choosen_file;
 	std::filesystem::path second_choosen_file;
 
-	
+	encryptor main_encryptor;
 
 	std::unique_ptr<QLabel> test_lbl;
 
 	std::unique_ptr<QLabel> acces_denied;
 
+	std::mt19937 gen1{ time(0) };
 	
 };
 

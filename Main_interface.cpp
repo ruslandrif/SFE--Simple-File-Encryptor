@@ -60,7 +60,7 @@ void Main_interface::set_current_directpry_path(const std::filesystem::path& new
 	//current_directory_to_choose = std::filesystem::current_path().root_path();
 }
 
-void Main_interface::menu()  {
+void Main_interface::menu() noexcept {
 	menu_layout->addWidget(start.get());
 	menu_layout->addWidget(exit.get());
 
@@ -98,13 +98,19 @@ void Main_interface::start_program()  {
 
 	connect(generate_files.get(), &QPushButton::clicked, this, [this]() {
 		try {
-			std::thread t1([this]() {this->generate_file("First_file.txt",FIRST_FILE); });
-			
+			std::thread t1([this]() {this->generate_file("First_file.bin",FIRST_FILE); });
+			std::thread t2([this]() {this->generate_file("Second_file.bin",SECOND_FILE); });
 
-			std::thread t2([this]() {this->generate_file("Second_file.txt",SECOND_FILE); });
+			//std::unique_ptr<QLabel> tmp_lbl = std::make_unique<QLabel>();
+			//tmp_lbl->setText("Generating...");
+			//tmp_lbl->setGeometry(500, 500, 300, 300);
+			////menu_layout->insertWidget(2, tmp_lbl.get());
+			//tmp_lbl->show();
 			
 			t1.join();
 			t2.join();
+			//menu_layout->removeWidget(tmp_lbl.get());
+	/*		tmp_lbl->hide();*/
 			ready_to_encrypt_screen();
 		}
 		catch (const std::invalid_argument& e) {
@@ -132,13 +138,7 @@ void Main_interface::search_for_files() {
 
 void Main_interface::show_list_of_files() {
 	
-	/*try {
-		int count = count_files_in_directory(current_directory_to_choose);
-	}
-	catch (const std::filesystem::filesystem_error& f) {
-		this->set_current_directpry_path(std::filesystem::current_path().root_path());
-		show_list_of_files();
-	}*/
+	
 	for (auto& button : files_to_choose) {
 		if(!menu_layout->isEmpty())
 			menu_layout->removeWidget(button.get());
@@ -272,6 +272,20 @@ void Main_interface::ready_to_encrypt_screen() {
 		+ ". Size: " + std::to_string(std::filesystem::file_size(second_choosen_file)) + " bytes"));
 
 	test_lbl->setText(QString(label_text.data()));
+
+	
+
+	connect(start_encrypt.get(), &QPushButton::clicked, this, [&]() {
+		main_encryptor.set_first_file(first_choosen_file);
+		main_encryptor.set_second_file(second_choosen_file);
+		try {
+			
+			main_encryptor.start_encrypt();
+		}
+		catch (const std::runtime_error& r) {
+
+		}
+	});
 }
 
 //generate 5 MB file
@@ -282,11 +296,12 @@ void Main_interface::generate_file(const std::string& filename,std::size_t which
 	const int up_border = 126;
 	const int down_border = 33;
 
-	std::mt19937 gen(time(0));  //we will use c++ 11 posibilities to generate random numbers
-	std::uniform_int_distribution<> uid(down_border, up_border);  //generate one ascii character number. The big string will be construct like this:
-											      //for example, number is 123, so the string will be {123,124,125,126,125,124,123,122,121,...}
+	  //we will use c++ 11 posibilities to generate random numbers
+	std::uniform_int_distribution<> uid1(down_border, up_border);  //generate one ascii character number. The big string will be construct like this:
+	std::uniform_int_distribution<> uid2(down_border + 5, up_border - 5);							      //for example, number is 123, so the string will be {123,124,125,126,125,124,123,122,121,...}
+	
 	std::fstream newfile;
-	newfile.open(std::filesystem::current_path().string() + filename,std::fstream::out);
+	newfile.open(filename,std::fstream::out);
 
 	if (!newfile.is_open()) throw std::invalid_argument("filename is incorrect");
 
@@ -294,7 +309,7 @@ void Main_interface::generate_file(const std::string& filename,std::size_t which
 		big_string.clear();
 		big_string.reserve(1000);
 
-		int number = uid(gen);
+		int number = (which == FIRST_FILE ? uid1 : uid2)(gen1);
 		int additional = 1;
 		for (int j = 0; j < 1000; ++j) {
 			if (number == up_border)
@@ -307,6 +322,18 @@ void Main_interface::generate_file(const std::string& filename,std::size_t which
 		newfile.write(big_string.data(), big_string.size());
 	}
 
-	((which == FIRST_FILE) ? first_choosen_file : second_choosen_file) = std::filesystem::path(std::filesystem::current_path().string() + filename);
+	//set filenames and sizes of generated files
+	for (auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path())) {
+		if (std::filesystem::path(entry.path()).filename() == filename) {
+			((which == FIRST_FILE) ? first_choosen_file : second_choosen_file) = entry.path();
+			break;
+		}
+	}
 	
+	
+}
+
+void Main_interface::bring_files_to_encryptor(const std::filesystem::path& _first, const std::filesystem::path& _second) {
+	main_encryptor.set_first_file(_first);
+	main_encryptor.set_second_file(_second);
 }
