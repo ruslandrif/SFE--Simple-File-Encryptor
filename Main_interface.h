@@ -31,7 +31,7 @@ public:
 	const std::filesystem::path& get_first_file_path() const { return first_choosen_file; }
 	const std::filesystem::path& get_second_file_path() const { return second_choosen_file; }
 
-	void bring_files_to_encryptor(const std::filesystem::path& _first, const std::filesystem::path& _second);
+	
 
 public slots:
 	void menu() noexcept;
@@ -39,6 +39,7 @@ public slots:
 	void search_for_files();
 	void show_list_of_files();
 	void ready_to_encrypt_screen();
+	void final_screen();
 private slots:
 	
 private:
@@ -63,9 +64,15 @@ private:
 	std::filesystem::path first_choosen_file;
 	std::filesystem::path second_choosen_file;
 
+	std::shared_ptr<QLabel> processing;
+
 	encryptor main_encryptor;
 
-	std::unique_ptr<QLabel> test_lbl;
+	std::unique_ptr<QLabel> files_paths;
+
+	std::unique_ptr<QLabel> result_file_path_lbl;
+	std::unique_ptr<QLabel> encryption_done;
+	std::unique_ptr<QLabel> encryption_duration;
 
 	std::unique_ptr<QLabel> acces_denied;
 

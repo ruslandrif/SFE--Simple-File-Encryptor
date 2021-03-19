@@ -9,7 +9,22 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 
 	generate_files = std::make_unique<QPushButton>(this);
 	generate_files->setText("Generate big files");
+	
 	generate_files->hide();
+
+	processing = std::make_shared<QLabel>(this);
+	processing->setText("Processing...");
+	processing->setGeometry(this->width() / 2, this->height() / 2, 400, 200);
+	processing->hide();
+
+	result_file_path_lbl = std::make_unique<QLabel>(this);
+	result_file_path_lbl->hide();
+
+	encryption_done = std::make_unique<QLabel>(this);
+	encryption_done->hide();
+
+	encryption_duration = std::make_unique<QLabel>(this);
+	encryption_duration->hide();
 
 	choose_from_existing = std::make_unique<QPushButton>(this);
 	choose_from_existing->setText("Choose files to encrypt from existing ones (Should be bigger then 1 MB.))");
@@ -36,11 +51,11 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 
 	setWindowTitle("File encryptor");
 
-	test_lbl = std::make_unique<QLabel>(this);
-	test_lbl->setText("First file: None\nSecond file: None.");
-	test_lbl->setAlignment(Qt::AlignCenter);
+	files_paths = std::make_unique<QLabel>(this);
+	files_paths->setText("First file: None\nSecond file: None.");
+	files_paths->setAlignment(Qt::AlignCenter);
 	
-	test_lbl->hide();
+	files_paths->hide();
 	
 	current_directory_to_choose = std::filesystem::current_path().root_path();
 
@@ -67,32 +82,49 @@ void Main_interface::menu() noexcept {
 	menu_layout->removeWidget(generate_files.get());
 	menu_layout->removeWidget(choose_from_existing.get());
 	menu_layout->removeWidget(to_main_menu.get());
-	menu_layout->removeWidget(test_lbl.get());
+	menu_layout->removeWidget(files_paths.get());
 	menu_layout->removeWidget(start_encrypt.get());
+	menu_layout->removeWidget(result_file_path_lbl.get());
+	menu_layout->removeWidget(encryption_done.get());
+	menu_layout->removeWidget(encryption_duration.get());
+	encryption_duration->hide();
+	encryption_done->hide();
+	result_file_path_lbl->hide();
 	start_encrypt->hide();
-	test_lbl->hide();
+	files_paths->hide();
 	generate_files->hide();
 	choose_from_existing->hide();
 	to_main_menu->hide();
 	start->show();
 	exit->show();
 
-	connect(start.get(), &QPushButton::clicked, this, [this]() {this->start_program(); });
+	connect(start.get(), &QPushButton::clicked, this, [this]() {
+		if (!(first_choosen_file != std::filesystem::current_path() && second_choosen_file != std::filesystem::current_path())) {
+			this->start_program();
+		}
+		else ready_to_encrypt_screen();
+		});
 	connect(exit.get(), &QPushButton::clicked, qApp, &QApplication::quit);
 }
 
 void Main_interface::start_program()  {
 	start->hide();
 	menu_layout->removeWidget(start.get());
+	
+	
 	menu_layout->insertWidget(0, to_main_menu.get());
-	menu_layout->insertWidget(0,generate_files.get());
-	menu_layout->insertWidget(0,choose_from_existing.get());
-	generate_files->show();
-	choose_from_existing->show();
 	to_main_menu->show();
 
-	menu_layout->insertWidget(2, test_lbl.get());
-	test_lbl->show();
+	menu_layout->insertWidget(0, choose_from_existing.get());
+	choose_from_existing->show();
+
+	menu_layout->insertWidget(0, generate_files.get());
+	generate_files->show();
+
+
+	
+	menu_layout->insertWidget(2, files_paths.get());
+	files_paths->show();
 
 	connect(choose_from_existing.get(), &QPushButton::clicked, this, [this]() {this->search_for_files(); });
 
@@ -101,12 +133,6 @@ void Main_interface::start_program()  {
 			std::thread t1([this]() {this->generate_file("First_file.bin",FIRST_FILE); });
 			std::thread t2([this]() {this->generate_file("Second_file.bin",SECOND_FILE); });
 
-			//std::unique_ptr<QLabel> tmp_lbl = std::make_unique<QLabel>();
-			//tmp_lbl->setText("Generating...");
-			//tmp_lbl->setGeometry(500, 500, 300, 300);
-			////menu_layout->insertWidget(2, tmp_lbl.get());
-			//tmp_lbl->show();
-			
 			t1.join();
 			t2.join();
 			//menu_layout->removeWidget(tmp_lbl.get());
@@ -225,11 +251,11 @@ void Main_interface::show_list_of_files() {
 		label_text += (second_choosen_file == std::filesystem::current_path()) ? std::string("None") : ((std::string(second_choosen_file.string().data())
 			+ ". Size: " + std::to_string(std::filesystem::file_size(second_choosen_file)) + " bytes"));
 
-		test_lbl->setText(QString(label_text.data()));
-		test_lbl->setAlignment(Qt::AlignCenter);
+		files_paths->setText(QString(label_text.data()));
+		files_paths->setAlignment(Qt::AlignCenter);
 
 		
-		test_lbl->show();
+		files_paths->show();
 		/*this->set_current_directpry_path(std::filesystem::current_path().root_path());
 		show_list_of_files();*/
 	}
@@ -258,34 +284,32 @@ void Main_interface::ready_to_encrypt_screen() {
 	menu_layout->removeWidget(to_root_path.get());
 	menu_layout->removeWidget(generate_files.get());
 	menu_layout->removeWidget(choose_from_existing.get());
+	menu_layout->removeWidget(start.get());
+	start->hide();
 	choose_from_existing->hide();
 	generate_files->hide();
 	to_root_path->hide();
 	start_encrypt->show();
 
-	std::string label_text = "First file:";
+	menu_layout->insertWidget(1, files_paths.get());
+	files_paths->show();
 
+	menu_layout->insertWidget(2, to_main_menu.get());
+	to_main_menu->show();
+
+	std::string label_text = "First file:";
 	label_text += (first_choosen_file == std::filesystem::current_path()) ? std::string("None") : ((std::string(first_choosen_file.string().data())
 		+ ". Size: " + std::to_string(std::filesystem::file_size(first_choosen_file)) + " bytes"));
 	label_text += "\nSecond file: ";
 	label_text += (second_choosen_file == std::filesystem::current_path()) ? std::string("None") : ((std::string(second_choosen_file.string().data())
 		+ ". Size: " + std::to_string(std::filesystem::file_size(second_choosen_file)) + " bytes"));
 
-	test_lbl->setText(QString(label_text.data()));
+	files_paths->setText(QString(label_text.data()));
 
-	
 
-	connect(start_encrypt.get(), &QPushButton::clicked, this, [&]() {
-		main_encryptor.set_first_file(first_choosen_file);
-		main_encryptor.set_second_file(second_choosen_file);
-		try {
-			
-			main_encryptor.start_encrypt();
-		}
-		catch (const std::runtime_error& r) {
-
-		}
-	});
+	main_encryptor.set_first_file(first_choosen_file);
+	main_encryptor.set_second_file(second_choosen_file);
+	connect(start_encrypt.get(), &QPushButton::clicked, this, [this]() {main_encryptor.start_encrypt(); final_screen(); });
 }
 
 //generate 5 MB file
@@ -305,7 +329,7 @@ void Main_interface::generate_file(const std::string& filename,std::size_t which
 
 	if (!newfile.is_open()) throw std::invalid_argument("filename is incorrect");
 
-	for (int i = 0; i < 10000; ++i) {
+	for (int i = 0; i < 1000; ++i) {
 		big_string.clear();
 		big_string.reserve(1000);
 
@@ -333,7 +357,36 @@ void Main_interface::generate_file(const std::string& filename,std::size_t which
 	
 }
 
-void Main_interface::bring_files_to_encryptor(const std::filesystem::path& _first, const std::filesystem::path& _second) {
-	main_encryptor.set_first_file(_first);
-	main_encryptor.set_second_file(_second);
+void Main_interface::final_screen() {
+	menu_layout->removeWidget(files_paths.get());
+	menu_layout->removeWidget(start_encrypt.get());
+	menu_layout->removeWidget(to_root_path.get());
+	files_paths->hide();
+	start_encrypt->hide();
+	to_root_path->hide();
+
+	
+
+	encryption_done->setText("Encryption was ended succesfully!");
+	encryption_done->setAlignment(Qt::AlignCenter);
+	menu_layout->insertWidget(0, encryption_done.get());
+	encryption_done->show();
+
+	std::filesystem::path result_file_path;
+	for (auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path())) {
+		if (std::filesystem::path(entry.path()).filename() == "Result.bin") {
+			result_file_path = entry.path();
+			break;
+		}
+	}
+
+	menu_layout->insertWidget(1, result_file_path_lbl.get());
+	result_file_path_lbl->setText("Path to result file: " + QString(result_file_path.string().data()));
+	result_file_path_lbl->setAlignment(Qt::AlignCenter);
+	result_file_path_lbl->show();
+
+	encryption_duration->setText("Last encryption time in seconds: " + QString(std::to_string(main_encryptor.get_last_encryption_time().count()).data()));
+	encryption_duration->setAlignment(Qt::AlignCenter);
+	menu_layout->insertWidget(2, encryption_duration.get());
+	encryption_duration->show();
 }

@@ -1,5 +1,7 @@
 #include "encryptor.h"
 
+std::size_t encryptor::written_characters = 0;
+
 encryptor::encryptor() : first(std::filesystem::current_path()),second(std::filesystem::current_path()){
 	
 }
@@ -11,59 +13,73 @@ encryptor::encryptor(const std::filesystem::path& first, const std::filesystem::
 
 void encryptor::start_encrypt() {
 
-	std::fstream first_s;
-	std::fstream second_s;
-
-	first_s.open(first.string());
-	second_s.open(second.string());
+	maximum_size = std::max(std::filesystem::file_size(first), std::filesystem::file_size(second));
 	
-	my_bitset = std::vector<int>(std::filesystem::file_size(first) + 1, -1);
+	auto start = std::chrono::high_resolution_clock::now();
 
-	std::thread t1([&]() {
-		try {
-			_read_file(first);
-		}
-		catch (...) {
-
-		}
+	std::thread t1([this]() {
+		
+		_read_file(first);
+		
 	});
-	std::thread t2([&]() {
-		try {
-			_read_file(second);
-		}
-		catch (...) {
+	std::thread t2([this]() {
+		
+		_read_file(second);
+		
+	});
 
+
+	
+	std::thread write_thread([this]() {
+		
+		std::fstream result;
+		result.open("Result.bin", std::fstream::out);
+		encryptor::written_characters = 0;
+	/*	writing_process->setValue(written);
+		writing_process->setRange(0, maximum_size);*/
+	
+		/*writing_process->show();*/
+		while (encryptor::written_characters != maximum_size) {
+			std::unique_lock<std::mutex> first_lock(first_m);
+			std::unique_lock<std::mutex> second_lock(second_m);
+
+			first_cv.wait(first_lock, [this]() {return !(first_file.empty()); });
+			second_cv.wait(second_lock, [this]() {return !(second_file.empty()); });
+
+			result.put(first_file.front() ^ second_file.front());
+
+			first_file.pop();
+			second_file.pop();
+			++encryptor::written_characters;
+			//writing_process->setValue(written_characters);
 		}
+		/*writing_process->hide();*/
+		result.close();
 	});
 
 	t1.join();
 	t2.join();
+	write_thread.join();
 
-	std::fstream result;
-	result.open("Result.bin", std::fstream::out);
 
-	for (auto i : my_bitset) {
-		result.put(i);
-	}
+	auto end = std::chrono::high_resolution_clock::now();
 
-	result.close();
-	my_bitset.clear();
+	encryption_time = end - start;
 }
 
-void encryptor::_read_file(const std::filesystem::path& f_path) noexcept {
+void encryptor::_read_file(const std::filesystem::path& f_path) {
 	std::fstream f;
 	f.open(f_path.string(),std::fstream::in);
-	if (!f.is_open()) throw std::runtime_error("");
-	int count = 0;
-	while (!f.eof()) {
-		std::lock_guard<std::mutex> lg(m);
-		if (my_bitset[count] == -1)
-			my_bitset[count] = f.get();
-		else my_bitset[count] = my_bitset[count] ^ f.get();
-		++count;
 	
-	}
+	int read = 0;
 
+
+	while (read < maximum_size) {
+		std::lock_guard<std::mutex> lg(((f_path == first) ? first_m : second_m));
+		((f_path == first) ? first_file : second_file).push(0);
+		((f_path == first) ? first_cv : second_cv).notify_one();
+		++read;
+	}
 
 	f.close();
 }

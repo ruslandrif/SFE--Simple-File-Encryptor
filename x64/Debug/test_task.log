@@ -1,4 +1,2 @@
 ﻿  encryptor.cpp
-D:\coding_projects\test_task\test_task\encryptor.cpp(56,1): warning C4297: encryptor::_read_file: ожидается, что функция не будет выдавать исключения, но она это делает
-D:\coding_projects\test_task\test_task\encryptor.cpp(56,1): message : для функции указан атрибут __declspec(nothrow), throw(), noexcept(true) или noexcept
   test_task.vcxproj -> D:\coding_projects\test_task\x64\Debug\test_task.exe
