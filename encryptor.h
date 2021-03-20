@@ -23,16 +23,16 @@ public:
 
 	void _read_file(const std::filesystem::path& f_path);
 	
-	std::size_t get_maximum_file_size() const noexcept { return maximum_size; }
+	std::size_t get_maximum_file_size() const noexcept;
 
 	void set_first_file(const std::filesystem::path& f);
 	void set_second_file(const std::filesystem::path& s);
 
-	const std::filesystem::path& get_first_file() const noexcept { return first; }
-	const std::filesystem::path& get_second_file() const noexcept { return second; }
+	const std::filesystem::path& get_first_file() const noexcept;
+	const std::filesystem::path& get_second_file() const noexcept;
 
 	
-	std::chrono::duration<float> get_last_encryption_time() { return encryption_time; }
+	std::chrono::duration<float> get_last_encryption_time() const noexcept;
 	
 private:
 	std::filesystem::path first;
@@ -51,8 +51,7 @@ private:
 	std::condition_variable first_cv;
 	std::condition_variable second_cv;
 
-	bool first_read;
-	bool second_read;
+
 };
 #endif
 

@@ -1,11 +1,25 @@
 #include "Main_interface.h"
+#include "encryptor.h"
+#include "Algorithms.h"
+Config Main_interface::configuration = Config();
+
 Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
+
+	main_encryptor = std::make_unique<encryptor>();
+
+	configuration.read_from_file("config.toml");
+
 	start = std::make_unique<QPushButton>(this);
+	start->setIcon(QIcon("icons\\start.png"));
 	start->setText("Start");
 
 	exit = std::make_unique<QPushButton>(this);
 	exit->setText("Exit");
 	exit->setIcon(QIcon("icons\\exit.png"));
+
+	settings = std::make_unique<QPushButton>(this);
+	settings->setText("Settings");
+	settings->setIcon(QIcon("icons//settings.png"));
 
 	generate_files = std::make_unique<QPushButton>(this);
 	generate_files->setText("Generate big files");
@@ -16,6 +30,16 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 	processing->setText("Processing...");
 	processing->setGeometry(this->width() / 2, this->height() / 2, 400, 200);
 	processing->hide();
+
+	second_file_lbl = std::make_unique<QLabel>("Choose second file size in kylobytes: ",this);
+	first_file_lbl = std::make_unique<QLabel>("Choose first file size in kylobytes: ", this);
+	algorithm_lbl = std::make_unique<QLabel>("Choose algorithm: ", this);
+	second_file_lbl->setAlignment(Qt::AlignCenter);
+	first_file_lbl->setAlignment(Qt::AlignCenter);
+	algorithm_lbl->setAlignment(Qt::AlignCenter);
+	second_file_lbl->hide();
+	first_file_lbl->hide();
+	algorithm_lbl->hide();
 
 	result_file_path_lbl = std::make_unique<QLabel>(this);
 	result_file_path_lbl->hide();
@@ -40,8 +64,29 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 	to_main_menu->setIcon(QIcon("icons\\menu.png"));
 	to_main_menu->hide();
 
+	first_file_size = std::make_unique<QLineEdit>(this);
+	first_file_size->setValidator(std::make_unique<QIntValidator>(0, 10000,this).get());
+	first_file_size->hide();
+
+	second_file_size = std::make_unique<QLineEdit>(this);
+	second_file_size->setValidator(std::make_unique<QIntValidator>(0, 10000, this).get());
+	second_file_size->hide();
+
+	algorithm = std::make_unique<QComboBox>(this);
+
+	list_of_algorithms = QStringList({ "XOR","OR","AND","CONSTANT ONE","CONSTANT ZERO" });
+	algorithm->addItems(list_of_algorithms);
+	algorithm->hide();
+
 	menu_layout = std::make_unique<QVBoxLayout>(this);
 	menu_layout.get()->setSpacing(10);
+
+	first_file_layout = std::make_unique<QHBoxLayout>();
+	second_file_layout = std::make_unique<QHBoxLayout>();
+	algorithm_layout = std::make_unique<QHBoxLayout>();
+
+	settings_temp_layout = std::make_unique<QHBoxLayout>();
+	settings_temp_layout->setSpacing(10);
 
 	first_choosen_file = second_choosen_file = std::filesystem::current_path();
 
@@ -69,6 +114,11 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 	menu();
 }
 
+const std::filesystem::path& Main_interface::get_current_dir_path() const { return current_directory_to_choose; }
+
+const std::filesystem::path& Main_interface::get_first_file_path() const { return first_choosen_file; }
+const std::filesystem::path& Main_interface::get_second_file_path() const { return second_choosen_file; }
+
 void Main_interface::set_current_directpry_path(const std::filesystem::path& newPath) {
 	//if (std::filesystem::exists(newPath))
 		current_directory_to_choose = newPath;
@@ -77,7 +127,10 @@ void Main_interface::set_current_directpry_path(const std::filesystem::path& new
 
 void Main_interface::menu() noexcept {
 	menu_layout->addWidget(start.get());
+	menu_layout->addWidget(settings.get());
 	menu_layout->addWidget(exit.get());
+
+	settings->show();
 
 	menu_layout->removeWidget(generate_files.get());
 	menu_layout->removeWidget(choose_from_existing.get());
@@ -87,6 +140,25 @@ void Main_interface::menu() noexcept {
 	menu_layout->removeWidget(result_file_path_lbl.get());
 	menu_layout->removeWidget(encryption_done.get());
 	menu_layout->removeWidget(encryption_duration.get());
+	menu_layout->removeItem(first_file_layout.get());
+	menu_layout->removeItem(second_file_layout.get());
+	menu_layout->removeItem(algorithm_layout.get());
+
+	algorithm_layout->removeWidget(algorithm.get());
+	algorithm_layout->removeWidget(algorithm_lbl.get());
+	algorithm->hide();
+	algorithm_lbl->hide();
+
+	first_file_layout->removeWidget(first_file_size.get());
+	first_file_layout->removeWidget(first_file_lbl.get());
+	first_file_size->hide();
+	first_file_lbl->hide();
+
+	second_file_layout->removeWidget(second_file_size.get());
+	second_file_layout->removeWidget(second_file_lbl.get());
+	second_file_size->hide();
+	second_file_lbl->hide();
+
 	encryption_duration->hide();
 	encryption_done->hide();
 	result_file_path_lbl->hide();
@@ -104,6 +176,9 @@ void Main_interface::menu() noexcept {
 		}
 		else ready_to_encrypt_screen();
 		});
+	connect(settings.get(), &QPushButton::clicked, this, [this]() {
+		show_settings();
+		});
 	connect(exit.get(), &QPushButton::clicked, qApp, &QApplication::quit);
 }
 
@@ -111,6 +186,8 @@ void Main_interface::start_program()  {
 	start->hide();
 	menu_layout->removeWidget(start.get());
 	
+	settings->hide();
+	menu_layout->removeWidget(settings.get());
 	
 	menu_layout->insertWidget(0, to_main_menu.get());
 	to_main_menu->show();
@@ -307,9 +384,9 @@ void Main_interface::ready_to_encrypt_screen() {
 	files_paths->setText(QString(label_text.data()));
 
 
-	main_encryptor.set_first_file(first_choosen_file);
-	main_encryptor.set_second_file(second_choosen_file);
-	connect(start_encrypt.get(), &QPushButton::clicked, this, [this]() {main_encryptor.start_encrypt(); final_screen(); });
+	main_encryptor->set_first_file(first_choosen_file);
+	main_encryptor->set_second_file(second_choosen_file);
+	connect(start_encrypt.get(), &QPushButton::clicked, this, [this]() {main_encryptor->start_encrypt(); final_screen(); });
 }
 
 //generate 5 MB file
@@ -329,7 +406,9 @@ void Main_interface::generate_file(const std::string& filename,std::size_t which
 
 	if (!newfile.is_open()) throw std::invalid_argument("filename is incorrect");
 
-	for (int i = 0; i < 1000; ++i) {
+	unsigned long kylobytes_size = (which == FIRST_FILE) ? Main_interface::configuration.get_first_size() : Main_interface::configuration.get_second_size();
+
+	for (int i = 0; i < kylobytes_size; ++i) {
 		big_string.clear();
 		big_string.reserve(1000);
 
@@ -385,8 +464,85 @@ void Main_interface::final_screen() {
 	result_file_path_lbl->setAlignment(Qt::AlignCenter);
 	result_file_path_lbl->show();
 
-	encryption_duration->setText("Last encryption time in seconds: " + QString(std::to_string(main_encryptor.get_last_encryption_time().count()).data()));
+	encryption_duration->setText("Last encryption time in seconds: " + QString(std::to_string(main_encryptor->get_last_encryption_time().count()).data()));
 	encryption_duration->setAlignment(Qt::AlignCenter);
 	menu_layout->insertWidget(2, encryption_duration.get());
 	encryption_duration->show();
+}
+
+void Main_interface::show_settings() noexcept {
+	menu_layout->removeWidget(start.get());
+	menu_layout->removeWidget(settings.get());
+	start->hide();
+	settings->hide();
+
+	menu_layout->removeWidget(exit.get());
+	exit->hide();
+
+	
+
+	first_file_size->setText(std::to_string(Main_interface::configuration.get_first_size()).data());
+	second_file_size->setText(std::to_string(Main_interface::configuration.get_second_size()).data());
+
+	first_file_layout->addWidget(first_file_lbl.get());
+	first_file_layout->addWidget(first_file_size.get());
+	
+	
+	second_file_layout->addWidget(second_file_lbl.get());
+	second_file_layout->addWidget(second_file_size.get());
+	
+	algorithm_layout->addWidget(algorithm_lbl.get());
+	algorithm_layout->addWidget(algorithm.get());
+
+	auto data = toml::parse("config.toml");
+	settings_temp_layout->addWidget(to_main_menu.get());
+
+	settings_temp_layout->addWidget(exit.get());
+	
+	algorithm->setCurrentIndex(list_of_algorithms.indexOf(toml::find<std::string>(data, "algorithm").data()));
+	//algorithm->set
+
+	menu_layout->insertLayout(0,first_file_layout.get());
+	menu_layout->insertLayout(1,second_file_layout.get());
+	menu_layout->insertLayout(0,algorithm_layout.get());
+	
+	menu_layout->insertLayout(3,settings_temp_layout.get());
+
+	
+
+	first_file_lbl->show();
+	first_file_size->show();
+
+	second_file_lbl->show();
+	second_file_size->show();
+
+	algorithm_lbl->show();
+	algorithm->show();
+
+	to_main_menu->show();
+	exit->show();
+
+
+
+	setLayout(menu_layout.get());
+
+	connect(first_file_size.get(), &QLineEdit::textChanged, this, [this](const QString& s) {
+		Main_interface::configuration.set_first_size(std::atoi(s.toStdString().data())); 
+		Main_interface::configuration.write_config_to_file();
+	});
+	connect(second_file_size.get(), &QLineEdit::textChanged, this, [this](const QString& s) {
+		Main_interface::configuration.set_second_size(std::atoi(s.toStdString().data())); 
+		Main_interface::configuration.write_config_to_file();
+	});
+	connect(algorithm.get(), static_cast<void(QComboBox::*)(const QString&)>(&QComboBox::textActivated), this, [&](const QString& s) {
+		if (s == "XOR") Main_interface::configuration.set_alg(ALGOS::XOR);
+		else if (s == "OR") Main_interface::configuration.set_alg(ALGOS::OR);
+		else if (s == "AND") Main_interface::configuration.set_alg(ALGOS::AND);
+		else if (s == "CONSTANT ONE") Main_interface::configuration.set_alg(ALGOS::CONSTANT_ONE);
+		else if (s == "CONSTANT ZERO") Main_interface::configuration.set_alg(ALGOS::CONSTANT_ZERO);
+
+		Main_interface::configuration.write_config_to_file();
+	});
+
+	connect(to_main_menu.get(), &QPushButton::clicked, this, &Main_interface::menu);
 }

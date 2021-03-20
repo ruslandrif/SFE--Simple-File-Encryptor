@@ -1,5 +1,6 @@
 
 #include "Main_interface.h"
+#include "encryptor.h"
 #include <QTextStream>
 #include <QLabel>
 #include <QApplication>

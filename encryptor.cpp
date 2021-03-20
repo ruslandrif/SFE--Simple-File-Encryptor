@@ -1,4 +1,6 @@
 #include "encryptor.h"
+#include "Algorithms.h"
+#include "Main_interface.h"
 
 std::size_t encryptor::written_characters = 0;
 
@@ -7,8 +9,7 @@ encryptor::encryptor() : first(std::filesystem::current_path()),second(std::file
 }
 
 encryptor::encryptor(const std::filesystem::path& first, const std::filesystem::path& second) noexcept : first(first), second(second) {
-	first_read = false;
-	second_read = false;
+	
 }
 
 void encryptor::start_encrypt() {
@@ -30,7 +31,7 @@ void encryptor::start_encrypt() {
 
 
 	
-	std::thread write_thread([this]() {
+	std::thread write_thread([&]() {
 		
 		std::fstream result;
 		result.open("Result.bin", std::fstream::out);
@@ -46,7 +47,7 @@ void encryptor::start_encrypt() {
 			first_cv.wait(first_lock, [this]() {return !(first_file.empty()); });
 			second_cv.wait(second_lock, [this]() {return !(second_file.empty()); });
 
-			result.put(first_file.front() ^ second_file.front());
+			result.put(Main_interface::configuration.get_alg()(first_file.front(),second_file.front()));
 
 			first_file.pop();
 			second_file.pop();
@@ -91,3 +92,10 @@ void encryptor::set_first_file(const std::filesystem::path& f) {
 void encryptor::set_second_file(const std::filesystem::path& s) {
 	second = (std::filesystem::exists(s)) ? s : std::filesystem::current_path();
 }
+
+const std::filesystem::path& encryptor::get_first_file() const noexcept { return first; }
+const std::filesystem::path& encryptor::get_second_file() const noexcept { return second; }
+
+std::chrono::duration<float> encryptor::get_last_encryption_time() const noexcept { return this->encryption_time; }
+
+std::size_t encryptor::get_maximum_file_size() const noexcept { return maximum_size; }

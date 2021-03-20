@@ -91,12 +91,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="encryptor.cpp" />
     <ClCompile Include="Main_interface.cpp" />
     <QtUic Include="test_task.ui" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Algorithms.h" />
+    <ClInclude Include="Config.h" />
     <ClInclude Include="encryptor.h" />
     <ClInclude Include="Main_interface.h" />
   </ItemGroup>
