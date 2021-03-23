@@ -1,3 +1,3 @@
-algorithm = "XOR"
-FIRST_SIZE = 1000
-SECOND_SIZE = 1000
+algorithm = "AND"
+FIRST_SIZE = 100
+SECOND_SIZE = 100

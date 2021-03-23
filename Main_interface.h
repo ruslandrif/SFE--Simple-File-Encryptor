@@ -17,7 +17,8 @@
 #include <thread>
 #include <mutex>
 #include <random>
-#include "Config.h"
+
+class Config;
 class encryptor;
 
 
