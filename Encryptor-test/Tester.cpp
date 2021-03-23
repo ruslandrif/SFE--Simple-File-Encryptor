@@ -1,5 +1,5 @@
 #include "Tester.h"
-
+#include "Algorithms.h"
 unit_test::unit_test() {
 	first_file_size = 0;
 	second_file_size = 0;
@@ -33,7 +33,7 @@ void Tester::load_tests_from_file(const std::string& file_with_test_cases) {
 		"(;)"
 		"([\\d]+)"
 		"(;)"
-		"([\\w]+[\\s\\S]*)"
+		"([\\w]+[\\s\\S]*)" //use regex to parse string with test case
 	);
 	std::cmatch result;
 
@@ -47,11 +47,11 @@ void Tester::load_tests_from_file(const std::string& file_with_test_cases) {
 	while (!f.eof()) {
 		f >> current_string;
 
-		std::regex_match(current_string.data(), result, string_format);
+		std::regex_match(current_string.data(), result, string_format); //parse string 
 
 		unsigned long first = std::atoi(result[1].str().data());
 		unsigned long second = std::atoi(result[3].str().data());
-
+		                                                           //get info about current unit test
 		std::pair<std::function<char(char, char)>, std::string> alg = ALGOS::string_to_alg[result[5].str()];
 
 		tests.push_back(unit_test(first, second, alg));
@@ -61,7 +61,7 @@ void Tester::load_tests_from_file(const std::string& file_with_test_cases) {
 	f.close();
 }
 
-bool Tester::check_one_test(const unit_test& ut) {
+bool Tester::check_one_test(const unit_test& ut) noexcept{
 	std::fstream first;
 	std::fstream second;
 	std::fstream result;
@@ -85,20 +85,18 @@ bool Tester::check_one_test(const unit_test& ut) {
 		if (f == -1) f = 0;
 		if (s == -1) s = 0;
 
-		if (ut.get_alg().first(f, s) != r)
+		if (ut.get_alg().first(f, s) != r)   //read both generated files, result file, and check, if the symbol from result is correct
 			return false;
 		count_read++;
 	}
-	bool ff = (first.eof());
-	s = second.get();
-
 	first.close();
 	second.close();
 	result.close();
 	return true;
 }
 
-void Tester::create_files_for_test(const unit_test& u) noexcept{
+void Tester::create_files_for_test(const unit_test& u) {
+
 	enc->generate_file_(u.get_first_size(), "First_file.bin");
 	enc->generate_file_(u.get_second_size(), "Second_file.bin");
 	enc->set_first_file(std::filesystem::path("First_file.bin"));
@@ -107,7 +105,7 @@ void Tester::create_files_for_test(const unit_test& u) noexcept{
 	enc->start_encrypt();
 }
 
-bool Tester::check_all_tests() {
+bool Tester::check_all_tests() noexcept{
 	for (auto test : tests) {
 
 		create_files_for_test(test);

@@ -2,6 +2,7 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 #include "Tester.h"
+#include "Algorithms.h"
 #include <iostream>
 
 unsigned int Factorial(unsigned int number) {
@@ -14,9 +15,9 @@ TEST_CASE("Factorials are computed", "[factorial]") {
     REQUIRE(t.check_all_tests());
 
     std::mt19937 gen1;
-    std::uniform_int_distribution<> first(1, 1000);
-    std::uniform_int_distribution<> second(1, 1000);
-    std::uniform_int_distribution<> indx(0, 4);
+    std::uniform_int_distribution<> first(1, 1000); //first file's size generator
+    std::uniform_int_distribution<> second(1, 1000); //second file's size generator
+    std::uniform_int_distribution<> indx(0, 4);  //algorithm generator
     std::vector< std::pair<std::function<char(char, char)>, std::string>> algorithms_set = { ALGOS::XOR,ALGOS::OR, ALGOS::AND, ALGOS::CONSTANT_ONE, ALGOS::CONSTANT_ZERO, };
 
 

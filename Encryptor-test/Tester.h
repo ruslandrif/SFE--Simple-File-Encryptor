@@ -9,7 +9,7 @@
 #include <filesystem>
 #include <regex>
 #include "encryptor.h"
-#include "Algorithms.h"
+
 class encryptor;
 
 struct unit_test { //constant unit test
@@ -32,10 +32,10 @@ public:
 	Tester() noexcept;
 	void load_tests_from_file(const std::string& file_with_test_cases);
 
-	bool check_one_test(const unit_test& ut); //check files for passing one single test
-	bool check_all_tests(); //check all user's test
+	bool check_one_test(const unit_test& ut) noexcept; //check files for passing one single test
+	bool check_all_tests() noexcept; //check all user's test
 
-	void create_files_for_test(const unit_test& u) noexcept;
+	void create_files_for_test(const unit_test& u);
 private:
 	std::unique_ptr<encryptor> enc; //tested encryptor
 
