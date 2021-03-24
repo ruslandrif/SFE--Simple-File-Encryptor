@@ -51,7 +51,7 @@ void Tester::load_tests_from_file(const std::string& file_with_test_cases) {
 
 		unsigned long first = std::atoi(result[1].str().data());
 		unsigned long second = std::atoi(result[3].str().data());
-		                                                           //get info about current unit test
+		//get info about current unit test
 		std::pair<std::function<char(char, char)>, std::string> alg = ALGOS::string_to_alg[result[5].str()];
 
 		tests.push_back(unit_test(first, second, alg));
@@ -61,16 +61,16 @@ void Tester::load_tests_from_file(const std::string& file_with_test_cases) {
 	f.close();
 }
 
-bool Tester::check_one_test(const unit_test& ut) noexcept{
+bool Tester::check_one_test(const unit_test& ut) noexcept {
 	std::fstream first;
 	std::fstream second;
 	std::fstream result;
 
 	unsigned long max_size = std::max(std::filesystem::file_size("First_file.bin"), std::filesystem::file_size("Second_file.bin"));
 	unsigned long min_size = std::min(std::filesystem::file_size("First_file.bin"), std::filesystem::file_size("Second_file.bin"));
-	first.open("First_file.bin", std::fstream::in);
-	second.open("Second_file.bin", std::fstream::in);
-	result.open("Result.bin", std::fstream::in);
+	first.open("First_file.bin", std::fstream::in | std::fstream::binary);
+	second.open("Second_file.bin", std::fstream::in | std::fstream::binary);
+	result.open("Result.bin", std::fstream::in | std::fstream::binary);
 
 	char f;
 	char s;
@@ -78,12 +78,12 @@ bool Tester::check_one_test(const unit_test& ut) noexcept{
 	int count_read = 0;
 
 	while (count_read < max_size) {
-		f = first.get();
-		s = second.get();
-		result.read(&r,1);
+		first.read(&f, 1);
+		second.read(&s, 1);
+		result.read(&r, 1);
 
-		if (f == -1) f = 0;
-		if (s == -1) s = 0;
+		if (first.fail()) f = 0;
+		if (second.fail()) s = 0;
 
 		if (ut.get_alg().first(f, s) != r)   //read both generated files, result file, and check, if the symbol from result is correct
 			return false;
@@ -105,11 +105,11 @@ void Tester::create_files_for_test(const unit_test& u) {
 	enc->start_encrypt();
 }
 
-bool Tester::check_all_tests() noexcept{
+bool Tester::check_all_tests() noexcept {
 	for (auto test : tests) {
 
 		create_files_for_test(test);
-		
+
 		if (!check_one_test(test))
 			return false;
 	}

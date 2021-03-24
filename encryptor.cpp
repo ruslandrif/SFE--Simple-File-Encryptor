@@ -34,7 +34,7 @@ void encryptor::start_encrypt() {
 	std::thread write_thread([&]() {
 
 		std::fstream result;
-		result.open("Result.bin", std::fstream::out);
+		result.open("Result.bin", std::fstream::out | std::fstream::binary);
 		encryptor::written_characters = 0;
 		/*	writing_process->setValue(written);
 			writing_process->setRange(0, maximum_size);*/
@@ -49,7 +49,7 @@ void encryptor::start_encrypt() {
 
 
 			char c = this->encryption_alg.first(first_file.front(), second_file.front()); //encrypt
-			                                                                   
+
 			result.write(&c, 1);  //write                               //this implementation make queues fully threadsafe
 
 			first_file.pop();
@@ -72,13 +72,14 @@ void encryptor::start_encrypt() {
 
 void encryptor::_read_file(const std::filesystem::path& f_path) {
 	std::fstream f;
-	f.open(f_path.string(), std::fstream::in);
+	f.open(f_path.string(), std::fstream::in | std::fstream::binary);
 
 	int read = 0;
 
 	while (!f.eof()) {
 		std::lock_guard<std::mutex> lg(((f_path == first) ? first_m : second_m)); //lock file's mutex
-		char curr = f.get();
+		char curr = '\0';
+		f.read(&curr, 1);
 		if (!f.eof()) {
 			((f_path == first) ? first_file : second_file).push(curr); //push value to queue and notify that queue is not empty now
 			((f_path == first) ? first_cv : second_cv).notify_one();
@@ -106,8 +107,8 @@ void encryptor::generate_file_(unsigned long kylobytes_size, const std::string& 
 
 	std::mt19937 gen1;
 	gen1.seed(rand() % 2000);
-	
-	std::uniform_int_distribution<> uid1(down_border, up_border);  
+
+	std::uniform_int_distribution<> uid1(down_border, up_border);
 
 	std::fstream newfile;
 	newfile.open(name, std::fstream::out);
