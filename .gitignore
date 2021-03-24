@@ -1,0 +1,8 @@
+/x64/
+*.bin
+/Encryptor-test/x64/
+/Encryptor-test/*.bin
+test_task.ui
+test_task.vcxproj
+test_task.vcxproj.filters
+test_task.vcxproj.user

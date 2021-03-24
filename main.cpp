@@ -1,16 +1,13 @@
 
 #include "Main_interface.h"
-#include <QTextStream>
-#include <QLabel>
-#include <QApplication>
-#include <QWidget>
+#include "encryptor.h"
 
 int main(int argc, char* argv[])
 {
     QApplication a(argc, argv);
 
-    Main_interface mI;
-    mI.show();
+    Main_interface program;
+    program.show();
    
 
     return a.exec();
