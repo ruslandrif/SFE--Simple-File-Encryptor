@@ -2,6 +2,8 @@
 *.bin
 /Encryptor-test/x64/
 /Encryptor-test/*.bin
+/Encryptor-test/Encryptor-test.vcxproj
+/Encryptor-test/Encryptor-test.vcxproj.user
 test_task.ui
 test_task.vcxproj
 test_task.vcxproj.filters
