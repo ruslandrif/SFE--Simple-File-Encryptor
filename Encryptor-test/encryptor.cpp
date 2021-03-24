@@ -34,13 +34,13 @@ void encryptor::start_encrypt() {
 	std::thread write_thread([&]() {
 
 		std::fstream result;
-		result.open("Result.bin", std::fstream::out);
+		result.open("Result.bin", std::fstream::out | std::fstream::binary);
 		encryptor::written_characters = 0;
 		/*	writing_process->setValue(written);
 			writing_process->setRange(0, maximum_size);*/
 
 			/*writing_process->show();*/
-		while (encryptor::written_characters < maximum_size ) {
+		while (encryptor::written_characters < maximum_size) {
 			std::unique_lock<std::mutex> first_lock(first_m);
 			std::unique_lock<std::mutex> second_lock(second_m);
 
@@ -50,7 +50,7 @@ void encryptor::start_encrypt() {
 
 			char c = this->encryption_alg.first(first_file.front(), second_file.front());
 
-			result.write(&c,1);
+			result.write(&c, 1);
 
 			first_file.pop();
 			second_file.pop();
@@ -72,13 +72,14 @@ void encryptor::start_encrypt() {
 
 void encryptor::_read_file(const std::filesystem::path& f_path) {
 	std::fstream f;
-	f.open(f_path.string(), std::fstream::in);
+	f.open(f_path.string(), std::fstream::in | std::fstream::binary);
 
 	int read = 0;
 
 	while (!f.eof()) {
 		std::lock_guard<std::mutex> lg(((f_path == first) ? first_m : second_m));
-		char curr = f.get();
+		char curr = '\0';
+		f.read(&curr, 1);
 		if (!f.eof()) {
 			((f_path == first) ? first_file : second_file).push(curr);
 			((f_path == first) ? first_cv : second_cv).notify_one();
