@@ -1,0 +1,5 @@
+/x64/
+/Encryptor-test/x64/
+/Encryptor-test/*vcxproj*
+*.bin
+*vcxproj*
