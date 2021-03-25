@@ -10,11 +10,13 @@
 #include <mutex>
 #include <queue>
 #include <chrono>
-
-class encryptor
+#include <QObject>
+#include <QDebug>
+class encryptor : public QObject
 {
+	Q_OBJECT
 public:
-	static std::size_t written_characters;
+	static std::uintmax_t written_characters;
 
 	explicit encryptor();
 	~encryptor();
@@ -47,7 +49,7 @@ private:
 	std::mutex first_m;
 	std::mutex second_m;
 
-	std::size_t maximum_size{ 0 };
+	std::uintmax_t maximum_size{ 0 };
 
 	std::chrono::duration<float> encryption_time{ 0 };
 
@@ -56,6 +58,10 @@ private:
 	std::condition_variable second_cv;
 
 	std::pair<std::function<char(char, char)>, std::string> encryption_alg;
+
+signals:
+	void encryption_done_signal();
+	void update_bar(int);
 };
 #endif
 

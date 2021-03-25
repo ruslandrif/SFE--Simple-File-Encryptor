@@ -12,11 +12,12 @@ encryptor::encryptor(const std::filesystem::path& first, const std::filesystem::
 }
 
 void encryptor::start_encrypt() {
-
+	auto start = std::chrono::high_resolution_clock::now();
 
 	maximum_size = std::max(std::filesystem::file_size(first), std::filesystem::file_size(second));
 
-	auto start = std::chrono::high_resolution_clock::now();
+	
+	
 
 	std::thread t1([this]() {
 
@@ -55,6 +56,7 @@ void encryptor::start_encrypt() {
 			first_file.pop();
 			second_file.pop();
 			++encryptor::written_characters;
+			
 			//writing_process->setValue(written_characters);
 		}
 		/*writing_process->hide();*/
@@ -65,9 +67,11 @@ void encryptor::start_encrypt() {
 	t2.join();
 	write_thread.join();
 
+	
 	auto end = std::chrono::high_resolution_clock::now();
-
 	encryption_time = end - start;
+
+	
 }
 
 void encryptor::_read_file(const std::filesystem::path& f_path) {

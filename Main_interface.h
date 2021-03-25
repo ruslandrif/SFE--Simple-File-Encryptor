@@ -1,18 +1,24 @@
 #ifndef MAIN_INT
 #define MAIN_INT
 #include <QWidget>
+#include <QString>
 #include <QLabel>
 #include <QApplication>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QObject>
 #include <QComboBox>
 #include <QStringList>
 #include <QLineEdit>
+#include <QFileDialog>
+#include <QProgressBar>
+#include <QMovie>
 #include <toml11-master/toml.hpp>
 #include <filesystem>
 #include <memory>
 #include <iostream>
 #include <fstream>
+#include <regex>
 #include <filesystem> // C++17 standard header file name
 #include <thread>
 #include <mutex>
@@ -29,6 +35,7 @@ class encryptor;
 
 class Main_interface : public QWidget 
 {
+
 public:
 
 	static Config configuration;
@@ -41,6 +48,8 @@ public:
 
 	void generate_file(const std::string& filename,std::size_t which);
 
+	void regenerate_file(const std::string& filename, std::size_t which);
+
 	const std::filesystem::path& get_first_file_path() const;
 	const std::filesystem::path& get_second_file_path() const;
 
@@ -50,12 +59,13 @@ public slots:
 	void menu() noexcept;
 	void show_settings() noexcept;
 	void start_program();
-	void search_for_files();
-	void show_list_of_files();
+	void search_for_file(unsigned WHICH);
+
 	void ready_to_encrypt_screen();
 	void final_screen();
+
 private slots:
-	
+	void encryptor_finished();
 private:
 	std::unique_ptr<QPushButton> start;
 	std::unique_ptr<QPushButton> exit;
@@ -69,12 +79,16 @@ private:
 	QStringList list_of_algorithms;
 
 	std::unique_ptr<QPushButton> generate_files;
-	std::unique_ptr<QPushButton> choose_from_existing;
+	std::unique_ptr<QPushButton> select_first;
+	std::unique_ptr<QPushButton> select_second;
 
 	std::unique_ptr<QPushButton> start_encrypt;
 
 	std::unique_ptr<QPushButton> to_root_path;
 	std::unique_ptr<QPushButton> to_main_menu;
+
+	std::unique_ptr<QPushButton> set_first_size;
+	std::unique_ptr<QPushButton> set_second_size;
 
 	std::unique_ptr<QVBoxLayout> menu_layout;
 
@@ -83,27 +97,40 @@ private:
 	std::unique_ptr<QHBoxLayout> second_file_layout;
 	std::unique_ptr<QHBoxLayout> algorithm_layout;
 	
-	std::vector<std::unique_ptr<QPushButton>> files_to_choose;
+	
 
 	std::filesystem::path current_directory_to_choose;
 	std::filesystem::path first_choosen_file;
 	std::filesystem::path second_choosen_file;
 
-	std::shared_ptr<QLabel> processing;
+	std::unique_ptr<QLabel> processing;
+	std::unique_ptr<QLabel> processing_text;
+	std::unique_ptr<QProgressBar> processing_progress;
 
 	std::unique_ptr<encryptor> main_encryptor;
 
 	std::unique_ptr<QLabel> files_paths;
 	std::unique_ptr<QLabel> result_file_path_lbl;
-	std::unique_ptr<QLabel> encryption_done;
+	std::unique_ptr<QLabel> encryption_done_lbl;
 	std::unique_ptr<QLabel> encryption_duration;
 	std::unique_ptr<QLabel> acces_denied;
+
+	std::unique_ptr<QMovie> loading_gif;
+
+	std::unique_ptr<QLabel> error_open_file;
+
+	std::unique_ptr<QLabel> incorrect_file_size;
+
+	std::unique_ptr<QLabel> same_files;
 
 	std::unique_ptr<QLabel> second_file_lbl;
 	std::unique_ptr<QLabel> first_file_lbl;
 	std::unique_ptr<QLabel> algorithm_lbl;
 
 	std::mt19937 gen1{ time(0) };
+
+	QString last_first_size;
+	QString last_second_size;
 	
 };
 

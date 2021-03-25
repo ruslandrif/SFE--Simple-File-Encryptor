@@ -100,7 +100,7 @@
   <ItemGroup>
     <ClInclude Include="Algorithms.h" />
     <ClInclude Include="Config.h" />
-    <ClInclude Include="encryptor.h" />
+    <QtMoc Include="encryptor.h" />
     <ClInclude Include="Main_interface.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

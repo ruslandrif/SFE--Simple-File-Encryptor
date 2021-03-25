@@ -1,7 +1,7 @@
 #include "encryptor.h"
 
 
-std::size_t encryptor::written_characters = 0;
+std::uintmax_t encryptor::written_characters = 0;
 
 encryptor::encryptor() : first(std::filesystem::current_path()), second(std::filesystem::current_path()) {
 
@@ -13,24 +13,37 @@ encryptor::encryptor(const std::filesystem::path& first, const std::filesystem::
 
 void encryptor::start_encrypt() {
 
-
-	maximum_size = std::max(std::filesystem::file_size(first), std::filesystem::file_size(second));
-
 	auto start = std::chrono::high_resolution_clock::now();
+	maximum_size = std::max(std::filesystem::file_size(first), std::filesystem::file_size(second));
+	int one_percent = maximum_size / 100;
 
-	std::thread t1([this]() { //launch two threads to read both files
+	std::fstream result;
+	result.open("Result.bin", std::fstream::out | std::fstream::binary);
+	encryptor::written_characters = 0;
+
+	std::thread t1([this]() { //read only first file
 
 		_read_file(first);
 
 		});
-	std::thread t2([this]() {
+	t1.detach();
 
-		_read_file(second);
-
+	if (first != second) {
+		
+		std::thread t2([this]() {
+			_read_file(second);
 		});
+		t2.detach();
 
+		std::thread write_thread([&]() {
+			while (encryptor::written_characters < maximum_size) {
+				std::unique_lock<std::mutex> first_lock(first_m); //lock both mutexes
+				std::unique_lock<std::mutex> second_lock(second_m);
 
+				first_cv.wait(first_lock, [this]() {return !(first_file.empty()); });
+				second_cv.wait(second_lock, [this]() {return !(second_file.empty()); });  //wait while queues is not empty (read threads will notify about that)
 
+<<<<<<< Updated upstream
 	std::thread write_thread([&]() {
 
 		std::fstream result;
@@ -46,34 +59,69 @@ void encryptor::start_encrypt() {
 
 			first_cv.wait(first_lock, [this]() {return !(first_file.empty()); });
 			second_cv.wait(second_lock, [this]() {return !(second_file.empty()); });  //wait while queues is not empty (read threads will notify about that)
+=======
+				char c = this->encryption_alg.first(first_file.front(), second_file.front()); //encrypt
+>>>>>>> Stashed changes
 
+				result.write(&c, 1);  //write                               //this implementation make queues fully threadsafe
 
+<<<<<<< Updated upstream
 			char c = this->encryption_alg.first(first_file.front(), second_file.front()); //encrypt
 			                                                                   
 			result.write(&c, 1);  //write                               //this implementation make queues fully threadsafe
+=======
+				first_file.pop();
+				second_file.pop();  //pop value from both queues
+				++encryptor::written_characters;
 
-			first_file.pop();
-			second_file.pop();  //pop value from both queues
-			++encryptor::written_characters;
-			//writing_process->setValue(written_characters);
-		}
-		/*writing_process->hide();*/
-		result.close();
+				if (encryptor::written_characters % one_percent == 0) {
+					emit update_bar(encryptor::written_characters / one_percent);
+				}
+>>>>>>> Stashed changes
+
+			}
 		});
 
-	t1.join();
-	t2.join();
-	write_thread.join();
+		write_thread.join();
+	}
 
+	else { //files are same
+		
+		std::thread write_thread([&]() {
+			
+			while (encryptor::written_characters < maximum_size) {
+				
+				std::unique_lock<std::mutex> first_lock(first_m); //lock both mutexes
+				first_cv.wait(first_lock, [this]() {return !(first_file.empty()); });
+				char c = this->encryption_alg.first(first_file.front(), first_file.front()); //use only one queue if files is same
+				result.write(&c, 1);  //write                              
+
+				first_file.pop();
+				++encryptor::written_characters;
+				if (encryptor::written_characters % one_percent == 0) {
+					emit update_bar(encryptor::written_characters / one_percent);
+				}
+			}
+		});
+		write_thread.join();
+	}
+	result.close();
 	auto end = std::chrono::high_resolution_clock::now();
 
 	encryption_time = end - start; //fix time of the encryption
+
+	emit encryption_done_signal();
 }
 
 void encryptor::_read_file(const std::filesystem::path& f_path) {
 	std::fstream f;
+<<<<<<< Updated upstream
 	f.open(f_path.string(), std::fstream::in);
 
+=======
+	f.open(f_path.wstring(), std::fstream::in | std::fstream::binary);
+	
+>>>>>>> Stashed changes
 	int read = 0;
 
 	while (!f.eof()) {
@@ -95,6 +143,7 @@ void encryptor::_read_file(const std::filesystem::path& f_path) {
 	}
 
 	f.close();
+	
 }
 
 void encryptor::generate_file_(unsigned long kylobytes_size, const std::string& name) {
@@ -110,7 +159,7 @@ void encryptor::generate_file_(unsigned long kylobytes_size, const std::string& 
 	std::uniform_int_distribution<> uid1(down_border, up_border);  
 
 	std::fstream newfile;
-	newfile.open(name, std::fstream::out);
+	newfile.open(name, std::fstream::out | std::fstream::binary);
 
 	if (!newfile.is_open()) throw std::invalid_argument("filename is incorrect");
 
