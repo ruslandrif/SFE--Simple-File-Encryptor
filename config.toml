@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-algorithm = "AND"
-=======
-algorithm = "XOR"
->>>>>>> Stashed changes
-FIRST_SIZE = 100
-SECOND_SIZE = 100
+algorithm = "OR"
+FIRST_SIZE = 9999
+SECOND_SIZE = 1000

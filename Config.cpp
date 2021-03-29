@@ -1,12 +1,15 @@
 #include "Config.h"
 #include "Algorithms.h"
+
+const std::uintmax_t Config::max_file_size = 10000;
+
 Config::Config()  {
 	first_size = 100;
 	second_size = 100;
 	alg = ALGOS::XOR;
 }
 
-const std::uintmax_t Config::max_file_size = 10000;
+
 
 std::uintmax_t Config::get_first_size() const { return first_size; }
 

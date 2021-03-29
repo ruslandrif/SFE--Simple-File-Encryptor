@@ -15,6 +15,7 @@ void encryptor::start_encrypt() {
 
 	auto start = std::chrono::high_resolution_clock::now();
 	maximum_size = std::max(std::filesystem::file_size(first), std::filesystem::file_size(second));
+	qDebug() << maximum_size;
 	int one_percent = maximum_size / 100;
 
 	std::fstream result;
@@ -35,7 +36,16 @@ void encryptor::start_encrypt() {
 		});
 		t2.detach();
 
+
+
 		std::thread write_thread([&]() {
+
+			
+			
+			/*	writing_process->setValue(written);
+				writing_process->setRange(0, maximum_size);*/
+
+				/*writing_process->show();*/
 			while (encryptor::written_characters < maximum_size) {
 				std::unique_lock<std::mutex> first_lock(first_m); //lock both mutexes
 				std::unique_lock<std::mutex> second_lock(second_m);
@@ -43,33 +53,13 @@ void encryptor::start_encrypt() {
 				first_cv.wait(first_lock, [this]() {return !(first_file.empty()); });
 				second_cv.wait(second_lock, [this]() {return !(second_file.empty()); });  //wait while queues is not empty (read threads will notify about that)
 
-<<<<<<< Updated upstream
-	std::thread write_thread([&]() {
-
-		std::fstream result;
-		result.open("Result.bin", std::fstream::out);
-		encryptor::written_characters = 0;
-		/*	writing_process->setValue(written);
-			writing_process->setRange(0, maximum_size);*/
-
-			/*writing_process->show();*/
-		while (encryptor::written_characters < maximum_size) {
-			std::unique_lock<std::mutex> first_lock(first_m); //lock both mutexes
-			std::unique_lock<std::mutex> second_lock(second_m);
-
-			first_cv.wait(first_lock, [this]() {return !(first_file.empty()); });
-			second_cv.wait(second_lock, [this]() {return !(second_file.empty()); });  //wait while queues is not empty (read threads will notify about that)
-=======
 				char c = this->encryption_alg.first(first_file.front(), second_file.front()); //encrypt
->>>>>>> Stashed changes
+
 
 				result.write(&c, 1);  //write                               //this implementation make queues fully threadsafe
 
-<<<<<<< Updated upstream
-			char c = this->encryption_alg.first(first_file.front(), second_file.front()); //encrypt
-			                                                                   
-			result.write(&c, 1);  //write                               //this implementation make queues fully threadsafe
-=======
+
+
 				first_file.pop();
 				second_file.pop();  //pop value from both queues
 				++encryptor::written_characters;
@@ -77,7 +67,7 @@ void encryptor::start_encrypt() {
 				if (encryptor::written_characters % one_percent == 0) {
 					emit update_bar(encryptor::written_characters / one_percent);
 				}
->>>>>>> Stashed changes
+
 
 			}
 		});
@@ -110,23 +100,23 @@ void encryptor::start_encrypt() {
 
 	encryption_time = end - start; //fix time of the encryption
 
+	qDebug() << ((first_file.size() == 0) && (second_file.size() == 0));
+
 	emit encryption_done_signal();
 }
 
 void encryptor::_read_file(const std::filesystem::path& f_path) {
 	std::fstream f;
-<<<<<<< Updated upstream
-	f.open(f_path.string(), std::fstream::in);
 
-=======
 	f.open(f_path.wstring(), std::fstream::in | std::fstream::binary);
 	
->>>>>>> Stashed changes
+
 	int read = 0;
 
 	while (!f.eof()) {
 		std::lock_guard<std::mutex> lg(((f_path == first) ? first_m : second_m)); //lock file's mutex
-		char curr = f.get();
+		char curr = '\0';
+		f.read(&curr, 1);
 		if (!f.eof()) {
 			((f_path == first) ? first_file : second_file).push(curr); //push value to queue and notify that queue is not empty now
 			((f_path == first) ? first_cv : second_cv).notify_one();
@@ -143,7 +133,7 @@ void encryptor::_read_file(const std::filesystem::path& f_path) {
 	}
 
 	f.close();
-	
+	qDebug() << "read end";
 }
 
 void encryptor::generate_file_(unsigned long kylobytes_size, const std::string& name) {

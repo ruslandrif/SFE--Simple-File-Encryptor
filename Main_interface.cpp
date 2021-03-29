@@ -30,10 +30,6 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 
 	generate_files = std::make_unique<QPushButton>(this);  //button to generate files
 	generate_files->setText("Generate big files");
-<<<<<<< Updated upstream
-	
-=======
->>>>>>> Stashed changes
 	generate_files->hide();
 
 	set_first_size = std::make_unique<QPushButton>(this);
@@ -50,9 +46,9 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 	processing->setAlignment(Qt::AlignCenter);
 	processing->hide();
 
-<<<<<<< Updated upstream
+
 	second_file_lbl = std::make_unique<QLabel>("Choose second file size in kylobytes: ",this);
-=======
+
 	processing_progress = std::make_unique<QProgressBar>(this);
 	processing_progress->setRange(0, 100);
 	processing_progress->setValue(0);
@@ -79,9 +75,9 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 	incorrect_file_size->hide();
 
 	second_file_lbl = std::make_unique<QLabel>("Choose second file size in kylobytes: ", this);
->>>>>>> Stashed changes
+
 	first_file_lbl = std::make_unique<QLabel>("Choose first file size in kylobytes: ", this);
-	algorithm_lbl = std::make_unique<QLabel>("Choose algorithm: ", this);
+	algorithm_lbl = std::make_unique<QLabel>("Choose algorithm: ",this);
 	second_file_lbl->setAlignment(Qt::AlignCenter);                        //some labels for settings
 	first_file_lbl->setAlignment(Qt::AlignCenter);
 	algorithm_lbl->setAlignment(Qt::AlignCenter);
@@ -93,6 +89,8 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 	result_file_path_lbl->hide();
 
 	encryption_done_lbl = std::make_unique<QLabel>(this);
+	encryption_done_lbl->setText("Encryption was done succesfully");
+	encryption_done_lbl->setAlignment(Qt::AlignCenter);
 	encryption_done_lbl->hide();
 
 	encryption_duration = std::make_unique<QLabel>(this);
@@ -117,11 +115,11 @@ Main_interface::Main_interface(QWidget* parent) : QWidget(parent) {
 	to_main_menu->hide();
 
 	first_file_size = std::make_unique<QLineEdit>(this);
-	first_file_size->setValidator(std::make_unique<QIntValidator>(0, 10000,this).get());
+	first_file_size->setValidator(new QIntValidator(1,Config::max_file_size,this));
 	first_file_size->hide();
 
 	second_file_size = std::make_unique<QLineEdit>(this);
-	second_file_size->setValidator(std::make_unique<QIntValidator>(0, 10000, this).get());
+	second_file_size->setValidator(new QIntValidator(1, Config::max_file_size, this));
 	second_file_size->hide();
 
 	algorithm = std::make_unique<QComboBox>(this);
@@ -378,14 +376,12 @@ void Main_interface::start_program()  {
 	
 	settings->hide();
 	menu_layout->removeWidget(settings.get());
-<<<<<<< Updated upstream
-	
-=======
+
 
 	menu_layout->insertWidget(0, generate_files.get());
 	generate_files->show();
 
->>>>>>> Stashed changes
+
 	menu_layout->insertWidget(0, to_main_menu.get());
 	to_main_menu->show();
 
@@ -402,114 +398,14 @@ void Main_interface::start_program()  {
 	menu_layout->insertWidget(2, files_paths.get());
 	files_paths->show();
 
-<<<<<<< Updated upstream
-	connect(choose_from_existing.get(), &QPushButton::clicked, this, [this]() {this->search_for_files(); });
 
-	connect(generate_files.get(), &QPushButton::clicked, this, [this]() {
-		try {
-			std::thread t1([this]() {this->generate_file("First_file.bin",FIRST_FILE); });
-			std::thread t2([this]() {this->generate_file("Second_file.bin",SECOND_FILE); });  //generate two files
-
-			t1.join();
-			t2.join();
-			//menu_layout->removeWidget(tmp_lbl.get());
-	/*		tmp_lbl->hide();*/
-			ready_to_encrypt_screen();
-		}
-		catch (const std::invalid_argument& e) {
-
-		}
-	});
-
-	connect(to_main_menu.get(), &QPushButton::clicked, this, &Main_interface::menu);
-}
-
-void Main_interface::search_for_files() { //function to choose files from root directory
-	
-
-	menu_layout->removeWidget(generate_files.get());
-	menu_layout->removeWidget(choose_from_existing.get());
-
-	choose_from_existing->hide();
-	generate_files->hide();
-
-	menu_layout->insertWidget(0, to_root_path.get());
-
-	show_list_of_files();
-=======
-	
->>>>>>> Stashed changes
 
 	
 }
 
-<<<<<<< Updated upstream
-void Main_interface::show_list_of_files() {
-	
-	
-	for (auto& button : files_to_choose) {
-		if(!menu_layout->isEmpty())
-			menu_layout->removeWidget(button.get());
-		
-		button->hide();
-	}
-	files_to_choose.clear();
-
-	menu_layout->removeWidget(acces_denied.get());
-	acces_denied->hide();
-
-	menu_layout->insertWidget(0, to_root_path.get());
-	to_root_path->setEnabled(!(current_directory_to_choose == std::filesystem::current_path().root_path()));
-	to_root_path->show();
-
-	
-	if (std::filesystem::is_directory(current_directory_to_choose)) { //show the list of files in the current directory (works bad with huge directories)
-		for (const auto& entry : std::filesystem::directory_iterator(current_directory_to_choose)) {
-			std::filesystem::file_status info = std::filesystem::status(entry.path());
-			//if (std::filesystem::is_regular_file(entry.path()) || std::filesystem::is_directory(entry.path())) {
-			std::unique_ptr<QPushButton> newbutton = std::make_unique<QPushButton>(this);
-			std::string current_format_path = entry.path().string();
 
 
-			newbutton->setText(current_format_path.data());
 
-			if (!std::filesystem::is_directory(entry.path())) {
-				newbutton->setIcon(QIcon("icons\\file.png"));
-			}
-			else {
-				newbutton->setIcon(QIcon("icons\\folder.png"));
-			}
-			menu_layout->insertWidget(0, newbutton.get());
-			connect(newbutton.get(), &QPushButton::clicked, this, [this,entry]() {
-				this->set_current_directpry_path(entry.path());
-				if(std::filesystem::exists(entry.path())) {
-
-					show_list_of_files();
-				}
-				else {
-					this->set_current_directpry_path(std::filesystem::current_path().root_path());
-					show_list_of_files();
-				}
-				});
-			files_to_choose.push_back(std::move(newbutton));
-		
-			
-		}
-	}
-	else {
-		
-		std::fstream f;
-		f.open(current_directory_to_choose.string());
-
-		if (f.is_open()) {
-			
-			if (first_choosen_file == std::filesystem::current_path()) first_choosen_file = current_directory_to_choose;
-			else if (second_choosen_file == std::filesystem::current_path()) 
-				second_choosen_file = current_directory_to_choose;
-			f.close();
-			
-			
-=======
 void Main_interface::search_for_file(unsigned Which) { //function to choose files from root directory
 
 	auto root_path_ = std::filesystem::current_path().root_directory();
@@ -528,7 +424,7 @@ void Main_interface::search_for_file(unsigned Which) { //function to choose file
 	files_paths->setText(QString(label_text.data()));
 
 	((Which == FIRST_FILE) ? select_first : select_second)->setText("Reselect " + QString(((Which == FIRST_FILE) ? "first" : "second")) + " file");
->>>>>>> Stashed changes
+
 
 	if(Which == FIRST_FILE)
 		main_encryptor->set_first_file(first_choosen_file);
@@ -539,50 +435,9 @@ void Main_interface::search_for_file(unsigned Which) { //function to choose file
 		try {
 			ready_to_encrypt_screen();
 		}
-<<<<<<< Updated upstream
-		else {
-			for (auto& button : files_to_choose) {
-				if (!menu_layout->isEmpty())
-					menu_layout->removeWidget(button.get());
 
-				button->hide();
-			}
-			files_to_choose.clear();
-
-			menu_layout->insertWidget(0, acces_denied.get());
-			acces_denied->setText("Access to file " + QString(current_directory_to_choose.string().data()) + " was denied."); //can not open choosen file
-			acces_denied->show();
-			
-		}
-		std::string label_text = "First file:";
-
-		label_text += (first_choosen_file == std::filesystem::current_path()) ? std::string("None") : ((std::string(first_choosen_file.string().data())
-			+ ". Size: " + std::to_string(std::filesystem::file_size(first_choosen_file)) + " bytes"));
-		label_text += "\nSecond file: ";
-		label_text += (second_choosen_file == std::filesystem::current_path()) ? std::string("None") : ((std::string(second_choosen_file.string().data())
-			+ ". Size: " + std::to_string(std::filesystem::file_size(second_choosen_file)) + " bytes"));
-
-		files_paths->setText(QString(label_text.data()));
-		files_paths->setAlignment(Qt::AlignCenter);
-
-		
-		files_paths->show();
-		/*this->set_current_directpry_path(std::filesystem::current_path().root_path());
-		show_list_of_files();*/
-	}
 	
-	files_to_choose.shrink_to_fit();
 
-	if (first_choosen_file != std::filesystem::current_path() && second_choosen_file != std::filesystem::current_path())
-		ready_to_encrypt_screen();
-
-	connect(to_root_path.get(), &QPushButton::clicked, this, [this]() {
-		this->set_current_directpry_path(std::filesystem::current_path().root_path());
-		show_list_of_files();
-		});
-	
-}
-=======
 		catch (const std::invalid_argument& e) {
 			error_open_file->show();
 		}
@@ -590,7 +445,7 @@ void Main_interface::search_for_file(unsigned Which) { //function to choose file
 }
 
 
->>>>>>> Stashed changes
+
 
 void Main_interface::ready_to_encrypt_screen() {
 
@@ -609,17 +464,17 @@ void Main_interface::ready_to_encrypt_screen() {
 		if (f.is_open())
 			f.close();
 	}
-<<<<<<< Updated upstream
-	files_to_choose.clear();
+
+
 	menu_layout->insertWidget(0,start_encrypt.get());
 	menu_layout->removeWidget(to_root_path.get());
 	
-	menu_layout->removeWidget(choose_from_existing.get());
+	
 	menu_layout->removeWidget(start.get());
 	start->hide();
-	choose_from_existing->hide();
+
 	generate_files->setText("Regenerate files");
-=======
+
 	menu_layout->insertWidget(0, start_encrypt.get());
 	menu_layout->removeWidget(to_root_path.get());
 
@@ -632,7 +487,7 @@ void Main_interface::ready_to_encrypt_screen() {
 	menu_layout->removeWidget(settings.get());
 
 	
->>>>>>> Stashed changes
+
 	menu_layout->insertWidget(1, generate_files.get());
 	generate_files->show();
 	to_root_path->hide();
@@ -752,47 +607,47 @@ void Main_interface::generate_file(const std::string& filename,std::size_t which
 		}
 	}
 	
-<<<<<<< Updated upstream
-	
-}
-
-void Main_interface::final_screen() {
-	menu_layout->removeWidget(files_paths.get());
-	menu_layout->removeWidget(start_encrypt.get());
-	menu_layout->removeWidget(to_root_path.get());
-	files_paths->hide();
-	start_encrypt->hide();
-	to_root_path->hide();
-
-	
-
-	encryption_done->setText("Encryption was ended succesfully!");
-	encryption_done->setAlignment(Qt::AlignCenter);
-	menu_layout->insertWidget(0, encryption_done.get());
-	encryption_done->show();
-
-	std::filesystem::path result_file_path;
-	for (auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path())) {
-		if (std::filesystem::path(entry.path()).filename() == "Result.bin") {
-			result_file_path = entry.path();
-			break;
-		}
+	if (which == FIRST_FILE) {
+		main_encryptor->set_first_file(std::filesystem::path(filename));
 	}
-
-	menu_layout->insertWidget(1, result_file_path_lbl.get());
-	result_file_path_lbl->setText("Path to result file: " + QString(result_file_path.string().data()));
-	result_file_path_lbl->setAlignment(Qt::AlignCenter);
-	result_file_path_lbl->show();
-=======
-	if (which == FIRST_FILE)
-		main_encryptor->set_first_file(first_choosen_file);
-	else
-		main_encryptor->set_second_file(second_choosen_file);
-	qDebug() << ((which == FIRST_FILE)? std::filesystem::file_size(main_encryptor->get_first_file()) : std::filesystem::file_size(main_encryptor->get_second_file()));
-
+	else {
+		main_encryptor->set_second_file(std::filesystem::path(filename));
+	}
+	
 }
 
->>>>>>> Stashed changes
+//void Main_interface::final_screen() {
+//	menu_layout->removeWidget(files_paths.get());
+//	menu_layout->removeWidget(start_encrypt.get());
+//	menu_layout->removeWidget(to_root_path.get());
+//	files_paths->hide();
+//	start_encrypt->hide();
+//	to_root_path->hide();
+//
+//	
+//
+//	
+//	menu_layout->insertWidget(0, encryption_done_lbl.get());
+//	encryption_done_lbl->show();
+//
+//	std::filesystem::path result_file_path;
+//	for (auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path())) {
+//		if (std::filesystem::path(entry.path()).filename() == "Result.bin") {
+//			result_file_path = entry.path();
+//			break;
+//		}
+//	}
+//
+//	menu_layout->insertWidget(1, result_file_path_lbl.get());
+//	result_file_path_lbl->setText("Path to result file: " + QString(result_file_path.string().data()));
+//	result_file_path_lbl->setAlignment(Qt::AlignCenter);
+//	result_file_path_lbl->show();
+//
+//	
+//
+//}
+
+
 
 
 void Main_interface::show_settings() noexcept {
@@ -811,20 +666,19 @@ void Main_interface::show_settings() noexcept {
 
 	first_file_layout->addWidget(first_file_lbl.get());
 	first_file_layout->addWidget(first_file_size.get());
-<<<<<<< Updated upstream
-	
-	
-	second_file_layout->addWidget(second_file_lbl.get());
-	second_file_layout->addWidget(second_file_size.get());
-	
-=======
 	first_file_layout->addWidget(set_first_size.get());
+	
+	
+
+	
+
+	
 
 	second_file_layout->addWidget(second_file_lbl.get());
 	second_file_layout->addWidget(second_file_size.get());
 	second_file_layout->addWidget(set_second_size.get());
 
->>>>>>> Stashed changes
+
 	algorithm_layout->addWidget(algorithm_lbl.get());
 	algorithm_layout->addWidget(algorithm.get());
 
@@ -842,15 +696,13 @@ void Main_interface::show_settings() noexcept {
 	
 	menu_layout->insertLayout(3,settings_temp_layout.get());
 
-<<<<<<< Updated upstream
-	
-=======
+
 	set_first_size->show();
 	set_first_size->setEnabled(false);
 
 	set_second_size->show();
 	set_second_size->setEnabled(false);
->>>>>>> Stashed changes
+
 
 	first_file_lbl->show();
 	first_file_size->show();
@@ -870,23 +722,4 @@ void Main_interface::show_settings() noexcept {
 
 	setLayout(menu_layout.get());
 
-<<<<<<< Updated upstream
-	connect(first_file_size.get(), &QLineEdit::textChanged, this, [this](const QString& s) {
-		Main_interface::configuration.set_first_size(std::atoi(s.toStdString().data())); 
-		Main_interface::configuration.write_config_to_file();
-	});
-	connect(second_file_size.get(), &QLineEdit::textChanged, this, [this](const QString& s) {
-		Main_interface::configuration.set_second_size(std::atoi(s.toStdString().data())); 
-		Main_interface::configuration.write_config_to_file();
-	});
-	connect(algorithm.get(), static_cast<void(QComboBox::*)(const QString&)>(&QComboBox::textActivated), this, [&](const QString& s) {
-		Main_interface::configuration.set_alg(ALGOS::string_to_alg[s.toStdString()]);
-
-		Main_interface::configuration.write_config_to_file();
-	});
-
-	connect(to_main_menu.get(), &QPushButton::clicked, this, &Main_interface::menu);
-=======
-	
->>>>>>> Stashed changes
 }

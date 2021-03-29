@@ -1,5 +1,2 @@
-﻿  Reading Qt configuration (D:/Qt/5.15.2/msvc2019_64/bin/qmake)
-  encryptor.cpp
-  main.cpp
-  Tester.cpp
+﻿  encryptor.cpp
   Encryptor-test.vcxproj -> D:\coding_projects\test_task\x64\Debug\Encryptor-test.exe
