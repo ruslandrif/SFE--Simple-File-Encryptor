@@ -11,57 +11,54 @@
 #include <queue>
 #include <chrono>
 #include <QObject>
-#include <QDebug>
+
+#include "Algorithms.h"
 class encryptor : public QObject
 {
 	Q_OBJECT
+
 public:
-	static std::uintmax_t written_characters;
-
-	explicit encryptor();
-	~encryptor();
+	
+	explicit encryptor() noexcept;
 	encryptor(const std::filesystem::path&, const std::filesystem::path&) noexcept;
+	~encryptor();
 
-	void start_encrypt();
+	void start_encrypt() noexcept;
+	void _read_file(const std::filesystem::path& f_path) noexcept;
 
-	void _read_file(const std::filesystem::path& f_path);
+	void set_first_file(const std::filesystem::path& f) noexcept;
+	void set_second_file(const std::filesystem::path& s) noexcept;
+	void set_encrypt_alg(const Available_algorithms::Algorithm&) noexcept;
 
-	std::size_t get_maximum_file_size() const noexcept;
-
-	void set_first_file(const std::filesystem::path& f);
-	void set_second_file(const std::filesystem::path& s);
-
-	void set_encrypt_alg(const std::pair<std::function<char(char, char)>, std::string>&);
-
-	const std::filesystem::path& get_first_file() const noexcept;
-	const std::filesystem::path& get_second_file() const noexcept;
-
-	void generate_file_(unsigned long kylobytes_size, const std::string& name);
-
+	const std::filesystem::path& get_first_file_path() const noexcept;
+	const std::filesystem::path& get_second_file_path() const noexcept;
 	std::chrono::duration<float> get_last_encryption_time() const noexcept;
 
-private:
-	std::filesystem::path first;
-	std::filesystem::path second;
-
-	std::queue<char> first_file;
-	std::queue<char> second_file;
-	std::mutex first_m;
-	std::mutex second_m;
-
-	std::uintmax_t maximum_size{ 0 };
-
-	std::chrono::duration<float> encryption_time{ 0 };
-
-
-	std::condition_variable first_cv;
-	std::condition_variable second_cv;
-
-	std::pair<std::function<char(char, char)>, std::string> encryption_alg;
+	void generate_file_(unsigned size, const std::string& fname);
 
 signals:
 	void encryption_done_signal();
 	void update_bar(int);
+private:
+	std::filesystem::path path_to_first_file;
+	std::filesystem::path path_to_second_file;
+
+	std::queue<char> first_file_queue;
+	std::queue<char> second_file_queue;
+
+	std::condition_variable first_cv;
+	std::condition_variable second_cv;
+
+	std::mutex first_mutex;
+	std::mutex second_mutex;
+
+	std::uintmax_t maximum_size{ 0 };
+	
+	std::chrono::duration<float> encryption_time{ 0 };
+
+	Available_algorithms::Algorithm encryption_alg;
+
 };
+
 #endif
 

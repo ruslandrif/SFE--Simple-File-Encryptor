@@ -1,198 +1,168 @@
 #include "encryptor.h"
 
 
-std::uintmax_t encryptor::written_characters = 0;
 
-encryptor::encryptor() : first(std::filesystem::current_path()), second(std::filesystem::current_path()) {
+
+encryptor::encryptor() noexcept : path_to_first_file(std::filesystem::current_path()), path_to_second_file(std::filesystem::current_path()) {
+	
+}
+
+encryptor::encryptor(const std::filesystem::path& first, const std::filesystem::path& second) noexcept : path_to_first_file(first), path_to_second_file(second) {
 
 }
 
-encryptor::encryptor(const std::filesystem::path& first, const std::filesystem::path& second) noexcept : first(first), second(second) {
-
-}
-
-void encryptor::start_encrypt() {
-
-	auto start = std::chrono::high_resolution_clock::now();
-	maximum_size = std::max(std::filesystem::file_size(first), std::filesystem::file_size(second));
-	qDebug() << maximum_size;
-	int one_percent = maximum_size / 100;
-
-	std::fstream result;
-	result.open("Result.bin", std::fstream::out | std::fstream::binary);
-	encryptor::written_characters = 0;
-
-	std::thread t1([this]() { //read only first file
-
-		_read_file(first);
-
-		});
-	t1.detach();
-
-	if (first != second) {
-		
-		std::thread t2([this]() {
-			_read_file(second);
-		});
-		t2.detach();
 
 
+void encryptor::start_encrypt() noexcept {
 
-		std::thread write_thread([&]() {
+	const bool same_files{ path_to_first_file == path_to_second_file };
 
-			
-			
-			/*	writing_process->setValue(written);
-				writing_process->setRange(0, maximum_size);*/
+	std::uintmax_t written_characters{ 0 };
 
-				/*writing_process->show();*/
-			while (encryptor::written_characters < maximum_size) {
-				std::unique_lock<std::mutex> first_lock(first_m); //lock both mutexes
-				std::unique_lock<std::mutex> second_lock(second_m);
+	auto start = std::chrono::high_resolution_clock::now(); //fix start of the time
 
-				first_cv.wait(first_lock, [this]() {return !(first_file.empty()); });
-				second_cv.wait(second_lock, [this]() {return !(second_file.empty()); });  //wait while queues is not empty (read threads will notify about that)
+	maximum_size = std::max(std::filesystem::file_size(path_to_first_file), std::filesystem::file_size(path_to_second_file)); //choose bigger file size
 
-				char c = this->encryption_alg.first(first_file.front(), second_file.front()); //encrypt
+	const int one_percent_of_encryption = maximum_size / 100;
 
+	std::thread read_thread_1([this]() { _read_file(path_to_first_file); });
+	read_thread_1.detach();
 
-				result.write(&c, 1);  //write                               //this implementation make queues fully threadsafe
-
-
-
-				first_file.pop();
-				second_file.pop();  //pop value from both queues
-				++encryptor::written_characters;
-
-				if (encryptor::written_characters % one_percent == 0) {
-					emit update_bar(encryptor::written_characters / one_percent);
-				}
-
-
-			}
-		});
-
-		write_thread.join();
+	if (!same_files) {
+		std::thread read_thread_2([this]() { _read_file(path_to_second_file); });
+		read_thread_2.detach();
 	}
 
-	else { //files are same
-		
-		std::thread write_thread([&]() {
-			
-			while (encryptor::written_characters < maximum_size) {
-				
-				std::unique_lock<std::mutex> first_lock(first_m); //lock both mutexes
-				first_cv.wait(first_lock, [this]() {return !(first_file.empty()); });
-				char c = this->encryption_alg.first(first_file.front(), first_file.front()); //use only one queue if files is same
-				result.write(&c, 1);  //write                              
+	char current_encrypted_symbol{ '\0' };
 
-				first_file.pop();
-				++encryptor::written_characters;
-				if (encryptor::written_characters % one_percent == 0) {
-					emit update_bar(encryptor::written_characters / one_percent);
-				}
-			}
-		});
-		write_thread.join();
-	}
-	result.close();
-	auto end = std::chrono::high_resolution_clock::now();
+	std::fstream result_file("Result.bin", std::fstream::out | std::fstream::binary);
+
+	
+	std::thread write_thread([&]() {
+
+		while (written_characters < maximum_size) {
+
+			std::unique_lock<std::mutex> first_lock(first_mutex); //lock first mutexe
+			std::unique_lock<std::mutex> second_lock(second_mutex); //lock second mutex
+
+			first_cv.wait(first_lock, [this]() {return !(first_file_queue.empty()); });
+			second_cv.wait(second_lock, [this]() {return !(second_file_queue.empty()); }); //wait while queues is not empty
+
+			current_encrypted_symbol = this->encryption_alg.first(first_file_queue.front(), second_file_queue.front()); //encrypt
+
+			first_file_queue.pop();
+			second_file_queue.pop();
+
+			result_file.write(&current_encrypted_symbol, 1);
+
+			++written_characters;
+
+			if (written_characters % one_percent_of_encryption == 0)
+				emit update_bar(written_characters / one_percent_of_encryption);
+
+		}
+	});
+
+	write_thread.join();
+
+	result_file.close();
+
+	auto end = std::chrono::high_resolution_clock::now(); //fix end of the time
 
 	encryption_time = end - start; //fix time of the encryption
-
-	qDebug() << ((first_file.size() == 0) && (second_file.size() == 0));
 
 	emit encryption_done_signal();
 }
 
-void encryptor::_read_file(const std::filesystem::path& f_path) {
-	std::fstream f;
+void encryptor::_read_file(const std::filesystem::path& f_path) noexcept {
+	const bool same_files = (path_to_first_file == path_to_second_file);
 
-	f.open(f_path.wstring(), std::fstream::in | std::fstream::binary);
-	
+	std::fstream file_to_read(f_path.wstring(), std::fstream::in | std::fstream::binary);
 
-	int read = 0;
+	int read_characters{ 0 }; 
+	char current_read_symbol{ 0 };
 
-	while (!f.eof()) {
-		std::lock_guard<std::mutex> lg(((f_path == first) ? first_m : second_m)); //lock file's mutex
-		char curr = '\0';
-		f.read(&curr, 1);
-		if (!f.eof()) {
-			((f_path == first) ? first_file : second_file).push(curr); //push value to queue and notify that queue is not empty now
-			((f_path == first) ? first_cv : second_cv).notify_one();
-			++read;
+	while (read_characters < maximum_size) {
+		file_to_read.read(&current_read_symbol, 1);
+
+		if (file_to_read.eof())
+			current_read_symbol = 0;
+
+		std::lock_guard<std::mutex> lg(((f_path == path_to_first_file) ? first_mutex : second_mutex));
+
+		((f_path == path_to_first_file) ? first_file_queue : second_file_queue).push(current_read_symbol);
+		((f_path == path_to_first_file) ? first_cv : second_cv).notify_one();
+
+		if (same_files) { //if files are same, this function will only push symbols to first queue, so need to add same symbol to the second queue
+			second_file_queue.push(current_read_symbol);
+			second_cv.notify_one();
 		}
+
+		++read_characters;
 	}
 
-
-	while (read < maximum_size) { //if this file is less size then second
-		std::lock_guard<std::mutex> lg(((f_path == first) ? first_m : second_m));
-		((f_path == first) ? first_file : second_file).push(0);
-		((f_path == first) ? first_cv : second_cv).notify_one();
-		++read;
-	}
-
-	f.close();
-	qDebug() << "read end";
+	file_to_read.close();
 }
 
-void encryptor::generate_file_(unsigned long kylobytes_size, const std::string& name) {
-	std::string big_string;
-	big_string.reserve(1024);  //string size will be 1 kB
-
-	const int up_border = 122;
-	const int down_border = 38;
-
+void encryptor::generate_file_(unsigned size, const std::string& fname) {
 	std::mt19937 gen1;
-	gen1.seed(rand() % 2000);
+	gen1.seed(2000);
+
+	constexpr unsigned up_border{ 122 };
+	constexpr unsigned down_border{ 5 };
+	constexpr unsigned kylobyte_size_in_bytes{ 1024 };
+
+	//we will use c++ 11 posibilities to generate random numbers
+	const std::uniform_int_distribution<> first_distribution(down_border, up_border);  //generate one ascii character number. The big string will be construct like this:
+	const std::uniform_int_distribution<> second_distribution(down_border + 5, up_border - 5);							      //for example, number is 35, so the string will be {36,37,38,...,up_border,up_border-1,...}
+
 	
-	std::uniform_int_distribution<> uid1(down_border, up_border);  
 
-	std::fstream newfile;
-	newfile.open(name, std::fstream::out | std::fstream::binary);
-
-	if (!newfile.is_open()) throw std::invalid_argument("filename is incorrect");
+	//const unsigned size_in_kylobytes = (is_first_file_choosen ? configuration.get_first_size() : configuration.get_second_size()); //size of the generated file
+	
+	unsigned start_symbol = first_distribution(gen1);
 
 
+	std::fstream newfile(fname, std::fstream::out | std::fstream::binary);
 
-	for (int i = 0; i < kylobytes_size; ++i) {
+	std::string big_string; //defining out of scope, to avoid reinitialization
+	for (unsigned curr_kylobyte = 0; curr_kylobyte < size; ++curr_kylobyte) {
 		big_string.clear();
-		big_string.reserve(1024);
+		big_string.reserve(kylobyte_size_in_bytes);
 
-		int number = uid1(gen1);
-		int additional = 1;
-		for (int j = 0; j < 1024; ++j) {
-			if (number == up_border)
-				additional = -1;
-			else if (number == down_border)
-				additional = 1;
-			big_string.push_back(number);
-			number += additional;
+		//fill one kylobyte string
+		for (unsigned current_symbol = start_symbol / 2 + 5, additional_value = 1, curr_byte = 0; curr_byte < kylobyte_size_in_bytes; ++curr_byte) {
+
+			if (current_symbol == up_border || current_symbol == down_border)
+				additional_value *= -1;  //1 or -1
+
+			big_string.push_back(current_symbol);
+
+			current_symbol += additional_value;
 		}
 		newfile.write(big_string.data(), big_string.size());
 	}
 	newfile.close();
+
 }
 
-void encryptor::set_first_file(const std::filesystem::path& f) {
-	first = (std::filesystem::exists(f)) ? f : std::filesystem::current_path();
+void encryptor::set_first_file(const std::filesystem::path& f) noexcept {
+	path_to_first_file = (std::filesystem::exists(f)) ? f : std::filesystem::current_path();
 }
 
-void encryptor::set_second_file(const std::filesystem::path& s) {
-	second = (std::filesystem::exists(s)) ? s : std::filesystem::current_path();
+void encryptor::set_second_file(const std::filesystem::path& s) noexcept {
+	path_to_second_file = (std::filesystem::exists(s)) ? s : std::filesystem::current_path();
 }
 
-const std::filesystem::path& encryptor::get_first_file() const noexcept { return first; }
-const std::filesystem::path& encryptor::get_second_file() const noexcept { return second; }
-
-std::chrono::duration<float> encryptor::get_last_encryption_time() const noexcept { return this->encryption_time; }
-
-std::size_t encryptor::get_maximum_file_size() const noexcept { return maximum_size; }
-
-void encryptor::set_encrypt_alg(const std::pair<std::function<char(char, char)>, std::string>& _alg) {
+void encryptor::set_encrypt_alg(const Available_algorithms::Algorithm& _alg) noexcept {
 	encryption_alg = _alg;
 }
 
-encryptor::~encryptor() {
+const std::filesystem::path& encryptor::get_first_file_path() const noexcept { return path_to_first_file; }
 
-}
+const std::filesystem::path& encryptor::get_second_file_path() const noexcept { return path_to_second_file; }
+
+std::chrono::duration<float> encryptor::get_last_encryption_time() const noexcept { return this->encryption_time; }
+
+
+encryptor::~encryptor() {}
