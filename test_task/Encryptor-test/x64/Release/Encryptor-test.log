@@ -1,6 +1,0 @@
-﻿  moc ..\encryptor.h
-  encryptor.cpp
-  main.cpp
-  Tester.cpp
-  moc_encryptor.cpp
-  Encryptor-test.vcxproj -> D:\coding_projects\test_task\x64\Release\Encryptor-test.exe
