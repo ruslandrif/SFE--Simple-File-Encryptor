@@ -1,1 +1,8 @@
-﻿  test_task.vcxproj -> D:\coding_projects\test_task\x64\Debug\test_task.exe
+﻿  uic test_task.ui
+  moc encryptor.h
+  Config.cpp
+  encryptor.cpp
+  Main_interface.cpp
+  main.cpp
+  moc_encryptor.cpp
+  test_task.vcxproj -> D:\coding_projects\test_task\SFE--Simple-File-Encryptor\x64\Debug\test_task.exe
