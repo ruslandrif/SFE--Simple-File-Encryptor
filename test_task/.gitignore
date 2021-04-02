@@ -1,0 +1,5 @@
+/test_task/x64
+/test_task/Encryptor-test/x64
+*.bin
+/test_task/Encryptor-test/*.bin
+test_task.ui
