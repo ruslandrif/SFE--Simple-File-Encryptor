@@ -97,12 +97,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="encryptor.cpp" />
+    <ClCompile Include="..\encryptor.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Tester.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="encryptor.h" />
+    <QtMoc Include="..\encryptor.h" />
     <ClInclude Include="Tester.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

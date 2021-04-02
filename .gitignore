@@ -1,9 +1,9 @@
-*.bin
 /x64
-/Encryptor-test/*.bin
 /Encryptor-test/x64
-*.tlog
-*.tlog
-*.obj
-*.vcxproj
-*.vcxproj
+/Encryptor-test/Encryptor-test.vcxproj.user
+/Encryptor-test/Encryptor-test.vcxproj
+*.bin
+test_task.vcxproj
+test_task.ui
+test_task.vcxproj.filters
+test_task.vcxproj.user

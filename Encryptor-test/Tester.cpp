@@ -1,9 +1,10 @@
 #include "Tester.h"
 #include "Algorithms.h"
+#include "encryptor.h"
 unit_test::unit_test() {
 	first_file_size = 0;
 	second_file_size = 0;
-	_algorithm = ALGOS::XOR;
+	_algorithm = Available_algorithms::XOR;
 }
 
 unit_test::unit_test(unsigned long f, unsigned long s, const std::pair<std::function<char(char, char)>, std::string>& a) {
@@ -28,7 +29,7 @@ Tester::Tester() noexcept {
 }
 
 void Tester::load_tests_from_file(const std::string& file_with_test_cases) {
-	std::regex string_format(
+	const std::regex string_format(
 		"([\\d]+)"
 		"(;)"
 		"([\\d]+)"
@@ -38,8 +39,7 @@ void Tester::load_tests_from_file(const std::string& file_with_test_cases) {
 	std::cmatch result;
 
 
-	std::fstream f;
-	f.open(file_with_test_cases, std::fstream::in);
+	std::fstream f(file_with_test_cases, std::fstream::in | std::fstream::binary);
 	if (!f.is_open()) throw std::invalid_argument("incorrect filename");
 
 	std::string current_string;
@@ -51,8 +51,8 @@ void Tester::load_tests_from_file(const std::string& file_with_test_cases) {
 
 		unsigned long first = std::atoi(result[1].str().data());
 		unsigned long second = std::atoi(result[3].str().data());
-		//get info about current unit test
-		std::pair<std::function<char(char, char)>, std::string> alg = ALGOS::string_to_alg[result[5].str()];
+		                                                           //get info about current unit test
+	    Available_algorithms::Algorithm alg = Available_algorithms::string_to_alg[result[5].str()];
 
 		tests.push_back(unit_test(first, second, alg));
 	}
@@ -61,29 +61,25 @@ void Tester::load_tests_from_file(const std::string& file_with_test_cases) {
 	f.close();
 }
 
-bool Tester::check_one_test(const unit_test& ut) noexcept {
-	std::fstream first;
-	std::fstream second;
-	std::fstream result;
+bool Tester::check_one_test(const unit_test& ut) noexcept{
+	std::fstream first(enc->get_first_file_path().string(), std::fstream::in | std::fstream::binary);
+	std::fstream second(enc->get_second_file_path().string(), std::fstream::in | std::fstream::binary);
+	std::fstream result("Result.bin", std::fstream::in | std::fstream::binary);
 
-	unsigned long max_size = std::max(std::filesystem::file_size("First_file.bin"), std::filesystem::file_size("Second_file.bin"));
-	unsigned long min_size = std::min(std::filesystem::file_size("First_file.bin"), std::filesystem::file_size("Second_file.bin"));
-	first.open("First_file.bin", std::fstream::in | std::fstream::binary);
-	second.open("Second_file.bin", std::fstream::in | std::fstream::binary);
-	result.open("Result.bin", std::fstream::in | std::fstream::binary);
+	const unsigned long max_size = std::max(std::filesystem::file_size(first_filename), std::filesystem::file_size(second_filename));
 
-	char f;
-	char s;
-	char r;
+	char f{ '\0' };
+	char s{ '\0' };
+	char r{ '\0' };
 	int count_read = 0;
 
 	while (count_read < max_size) {
 		first.read(&f, 1);
 		second.read(&s, 1);
-		result.read(&r, 1);
+		result.read(&r,1);
 
-		if (first.fail()) f = 0;
-		if (second.fail()) s = 0;
+		if (first.eof()) f = 0;
+		if (second.eof()) s = 0;
 
 		if (ut.get_alg().first(f, s) != r)   //read both generated files, result file, and check, if the symbol from result is correct
 			return false;
@@ -96,22 +92,38 @@ bool Tester::check_one_test(const unit_test& ut) noexcept {
 }
 
 void Tester::create_files_for_test(const unit_test& u) {
-
-	enc->generate_file_(u.get_first_size(), "First_file.bin");
-	enc->generate_file_(u.get_second_size(), "Second_file.bin");
-	enc->set_first_file(std::filesystem::path("First_file.bin"));
-	enc->set_second_file(std::filesystem::path("Second_file.bin"));
+	try {
+		enc->generate_file_(u.get_first_size(), first_filename);
+		enc->generate_file_(u.get_second_size(), second_filename);
+	}
+	catch (const std::runtime_error& e) {
+		throw std::runtime_error("");
+	}
+	enc->set_first_file(find_path_of_the_file(first_filename));
+	enc->set_second_file(find_path_of_the_file(second_filename));
 	enc->set_encrypt_alg(u.get_alg());
 	enc->start_encrypt();
 }
 
-bool Tester::check_all_tests() noexcept {
+bool Tester::check_all_tests() noexcept{
 	for (auto test : tests) {
 
 		create_files_for_test(test);
-
+		
 		if (!check_one_test(test))
 			return false;
 	}
 	return true;
+}
+
+std::filesystem::path Tester::find_path_of_the_file(const std::string& filename) {
+	using namespace std::filesystem;
+
+	for (const auto& entry : directory_iterator(current_path())) {
+		if (entry.path().filename() == filename) {
+			return entry.path();
+		}
+	}
+
+	return current_path();
 }
